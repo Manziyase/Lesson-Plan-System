@@ -1,0 +1,202 @@
+/*
+ * Ireme — relational schema.
+ *
+ * Migrated 1:1 from the legacy JSON database (data/db.json):
+ *   schools/users/academic_years/plans/sessions collections become tables;
+ *   each plan row is stored relationally and mirrored into a searchable
+ *   `Lesson` record (same derivation rules as the legacy server).
+ *
+ * Legacy ids (school_rt, user_ru, plan_7361a1, plan_7361a1_r1, …) are kept
+ * verbatim so bookmarks, imported rows and lesson ids stay stable.
+ * String arrays (subjects, classes, levels, terms) are JSON-encoded for
+ * SQLite compatibility; the data layer parses them through helpers.
+ */
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Meta {
+  key   String @id
+  value String
+}
+
+model School {
+  id            String   @id
+  name          String
+  code          String   @default("") // MINEDUC registration/code number (optional)
+  level         String   @default("") // nursery | primary | secondary | combined
+  ownership     String   @default("") // public | aided | private
+  province      String   @default("")
+  district      String   @default("")
+  sector        String   @default("")
+  cell          String   @default("")
+  village       String   @default("")
+  address       String   @default("") // physical address
+  officialEmail String   @default("")
+  officialPhone String   @default("")
+  levels        String   @default("[]") // JSON: ["N1","P1",…]
+  createdAt     DateTime @default(now())
+
+  classes       Class[]
+  learningAreas LearningArea[]
+  users         User[]
+  academicYears AcademicYear[]
+  plans         Plan[]
+}
+
+model Class {
+  id       String  @id
+  schoolId String
+  name     String
+  level    String? // "P5", "N2", "S1"
+  stream   String? // "A" … "H" or null
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+model LearningArea {
+  id       String @id
+  schoolId String
+  name     String
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+model User {
+  id                 String   @id
+  schoolId           String
+  name               String
+  email              String   @unique
+  phone              String   @default("") // administrator phone number
+  role               String   @default("teacher") // "admin" | "teacher"
+  salt               String // legacy scrypt format preserved (12-byte hex)
+  passwordHash       String // scrypt 32-byte hex — migrated users log in unchanged
+  subjects           String   @default("[]") // JSON string[]
+  classes            String   @default("[]") // JSON string[] (class names)
+  language           String   @default("en") // en | fr | rw
+  mustChangePassword Boolean  @default(false)
+  activeYearId       String?
+  createdAt          DateTime @default(now())
+
+  school   School    @relation(fields: [schoolId], references: [id])
+  plans    Plan[]
+  sessions Session[]
+
+  @@index([schoolId])
+}
+
+model AcademicYear {
+  id        String   @id
+  schoolId  String
+  label     String
+  startDate String // YYYY-MM-DD
+  endDate   String // YYYY-MM-DD
+  terms     String   @default("[1,2,3]") // JSON number[]
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  plans  Plan[]
+
+  @@index([schoolId])
+}
+
+model Plan {
+  id             String   @id
+  schoolId       String
+  teacherId      String
+  teacherName    String // denormalised, as in the legacy DB
+  academicYearId String
+  yearLabel      String // denormalised
+  term           Int // 1 | 2 | 3
+  date           String // YYYY-MM-DD (kept as string for legacy comparisons)
+  status         String   @default("published") // "pending" (awaiting admin approval) | "published" (approved → visible in the Lesson Library)
+  approvedByName String   @default("") // admin who approved it
+  approvedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  teacher User         @relation(fields: [teacherId], references: [id])
+  year    AcademicYear @relation(fields: [academicYearId], references: [id])
+  school  School       @relation(fields: [schoolId], references: [id])
+  rows    PlanRow[]
+  lessons Lesson[]
+
+  @@index([schoolId])
+  @@index([teacherId])
+  @@index([academicYearId])
+  @@index([date])
+}
+
+model PlanRow {
+  id             String  @id // "<planId>_r<n>" — same scheme as legacy lesson ids
+  planId         String
+  position       Int // 1-based row order
+  time           String  @default("")
+  classId        String  @default("")
+  className      String  @default("")
+  levelId        String  @default("")
+  stream         String?
+  learningAreaId String  @default("")
+  learningArea   String  @default("")
+  competence     String  @default("")
+  procedure      String  @default("")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+/// Searchable lesson record derived from a PlanRow (legacy "lessons" collection).
+model Lesson {
+  id             String  @id // equals the PlanRow id
+  planId         String
+  schoolId       String
+  teacherId      String
+  teacherName    String  @default("")
+  yearLabel      String  @default("")
+  academicYearId String
+  term           Int
+  date           String
+  time           String  @default("")
+  classId        String  @default("")
+  className      String  @default("")
+  levelId        String  @default("")
+  learningAreaId String  @default("")
+  learningArea   String  @default("")
+  unit           String  @default("") // first line of the competence
+  competence     String  @default("")
+  procedure      String  @default("")
+  createdAt      DateTime
+  updatedAt      DateTime
+  status         String   @default("published") // mirrors the owning plan's approval status
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([classId, learningAreaId])
+  @@index([teacherId])
+  @@index([planId])
+  @@index([status])
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
