@@ -51,7 +51,10 @@ export function useTheme() {
 /** The toggle button — a small icon button styled by .btn-icon in globals.css. */
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
-  const mountedState = typeof window !== "undefined";
+  /* The server and the first client render both use the default "light"
+     state, so the markup matches and hydration succeeds. The real choice
+     (localStorage / OS preference) is picked up in the theme effect right
+     after mount, which swaps the icon with no mismatch warning. */
   return (
     <button
       type="button"
@@ -61,7 +64,7 @@ export function ThemeToggle() {
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       suppressHydrationWarning
     >
-      {mountedState ? <Icon name={theme === "dark" ? "sun" : "moon"} size={18} /> : null}
+      <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
     </button>
   );
 }

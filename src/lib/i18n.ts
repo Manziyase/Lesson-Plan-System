@@ -172,7 +172,7 @@ export const I18N: Record<string, Record<string, string>> = {
       "Choisissez les niveaux de votre école et ajoutez des classes lettres (A, B, …) quand un niveau a plusieurs classes. Seules les classes choisies apparaissent dans l\u2019application.",
     "Streams (leave all unchecked for a single class per level):":
       "Classes lettres (laissez tout décoché pour une seule classe par niveau) :",
-    "Set up your school on Inzozi Academy": "Configurez votre école sur Inzozi Academy",
+    "Set up your school on Inzozi Academy": "Configurez votre école sur LessonHub",
     "Setup steps": "Étapes de configuration",
     "Your information": "Vos informations",
     "School information": "Informations sur l\u2019école",
@@ -510,7 +510,7 @@ export const I18N: Record<string, Record<string, string>> = {
     Lessons: "Amasomo",
     "My profile": "Umwirondoro wanjye",
     "Mathematics, Physics": "Ibarurirwa, Fizika",
-    "Set up your school on Inzozi Academy": "Igena rya shuri ryawe kuri Inzozi Academy",
+    "Set up your school on Inzozi Academy": "Igena rya shuri ryawe kuri LessonHub",
     "Select…": "Hitamo…",
     optional: "si byateganijwe",
     Combined: "Bifatanyije",

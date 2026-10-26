@@ -64,11 +64,14 @@ function wait(ms) {
 }
 
 async function startServer() {
-  const child = spawn("npx", ["next", "start", "-p", String(PORT)], {
+  // Spawn the Next CLI directly through node instead of going through a
+  // shell (npx), so that child.kill() actually stops the server on Windows
+  // (a shell:true spawn only kills the cmd wrapper and orphans the server).
+  const nextCli = path.join(__dirname, "..", "node_modules", "next", "dist", "bin", "next");
+  const child = spawn(process.execPath, [nextCli, "start", "-p", String(PORT)], {
     cwd: __dirname + "/..",
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
   });
   child.stdout.on("data", (d) => process.stdout.write("  [server] " + d));
   child.stderr.on("data", (d) => process.stderr.write("  [server] " + d));

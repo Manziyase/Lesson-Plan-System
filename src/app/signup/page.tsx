@@ -94,10 +94,10 @@ function Wizard() {
       <div className="auth-card card" style={{ maxWidth: 480 }}>
         <div style={{ textAlign: "center", marginBottom: 14, position: "relative" }}>
           <div className="auth-logo">
-            <img src="/brand/logo-mark.png" alt="Inzozi Academy" />
+            <Icon name="book" size={28} />
           </div>
-          <h1 className="auth-title" style={{ fontSize: "1.2rem", margin: "0 0 2px" }}>Inzozi Academy</h1>
-          <p className="auth-sub">{t("Set up your school on Inzozi Academy")}</p>
+          <h1 className="auth-title" style={{ fontSize: "1.2rem", margin: "0 0 2px" }}>LessonHub</h1>
+          <p className="auth-sub">{t("Set up your school on LessonHub")}</p>
           <div style={{ position: "absolute", top: -6, right: -6 }}>
             <ThemeToggle />
           </div>

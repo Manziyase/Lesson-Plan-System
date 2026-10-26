@@ -97,7 +97,7 @@ function RegisterForm() {
       <div className="auth-card" style={{ maxWidth: 560 }}>
         <div style={{ textAlign: "center", marginBottom: 16, position: "relative" }}>
           <div className="auth-logo">
-            <img src="/brand/logo-mark.png" alt="Inzozi Academy" />
+            <Icon name="book" size={28} />
           </div>
           <h1 className="auth-title" style={{ fontSize: "1.25rem", margin: "0 0 2px" }}>{t("Register your school")}</h1>
           <p className="auth-sub">{t("Create a School Administrator account and a private workspace for your school.")}</p>

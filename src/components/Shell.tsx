@@ -1,13 +1,14 @@
 "use client";
 
 /*
- * App shell — Inzozi Academy branding. Sidebar layout that is collapsible on
- * desktop (icons-only state persisted in localStorage) and off-canvas with a
+ * App shell — LessonHub. Sidebar layout that is collapsible on desktop
+ * (icons-only state persisted in localStorage) and off-canvas with a
  * hamburger on mobile. Every control is preserved: academic-year selector,
  * language selector, user box with logout, admin-only links, print header.
+ * Product-neutral branding: each school's own name shows in the sidebar,
+ * so nothing here is tied to one school.
  */
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
@@ -67,6 +68,7 @@ export function useMeta() {
 const NAV_ICONS: Record<string, IconName> = {
   "/dashboard": "dashboard",
   "/planner": "planner",
+  "/calendar": "calendar",
   "/plans": "fileText",
   "/library": "book",
   "/approvals": "clipboardCheck",
@@ -81,6 +83,7 @@ function pageTitle(seg: string, fallback: string): string {
   const map: Record<string, string> = {
     "/dashboard": "Dashboard",
     "/planner": "Daily Planner",
+    "/calendar": "Calendar",
     "/plans": "My Plans",
     "/library": "Lesson Library",
     "/approvals": "Approvals",
@@ -117,6 +120,7 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
   const navItems: { href: string; label: string }[] = [
     { href: "/dashboard", label: t("Dashboard") },
     { href: "/planner", label: t("Daily Planner") },
+    { href: "/calendar", label: t("Calendar") },
     { href: "/plans", label: t("My Plans") },
     { href: "/library", label: t("Lesson Library") },
     { href: "/approvals", label: t("Approvals") },
@@ -171,12 +175,9 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
 
         <aside className="sidebar no-print" aria-label={t("Main navigation")}>
           <Link className="sidebar__brand" href="/dashboard">
-            <span className="sidebar__logo">
-              <Image src="/brand/logo-mark.png" alt="" width={36} height={36} priority />
-            </span>
             <span className="sidebar__title">
-              Inzozi Academy
-              <small>{t("Lesson Planning")}</small>
+              LessonHub
+              <small>{t("Plan Once. Teach Better. Grow Together.")}</small>
             </span>
           </Link>
           <div className="sidebar__school">
@@ -225,7 +226,7 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
             <button className="btn-icon" onClick={toggleCollapse} title={collapsed ? t("Expand sidebar") : t("Collapse sidebar")} aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}>
               <Icon name={collapsed ? "chevronsRight" : "chevronsLeft"} size={18} />
             </button>
-            <span className="topbar__title">{t(pageTitle(seg, "Inzozi Academy"))}</span>
+            <span className="topbar__title">{t(pageTitle(seg, "LessonHub"))}</span>
             <span className="topbar__spacer" />
             <div className="topbar__ctl">
               <span className="ylabel">{t("Academic year")}</span>

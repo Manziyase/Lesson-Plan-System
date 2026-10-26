@@ -64,7 +64,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const yearId = meta.activeYear?.id ?? "";
-    api<Dash>(`/api/dashboard?year=${encodeURIComponent(yearId)}`).then(setD).catch(() => {});
+    api<Dash>(`/api/dashboard?year=${encodeURIComponent(yearId)}`)
+      .then(setD)
+      .catch((e) => console.error("Failed to load dashboard data:", e));
   }, [meta.activeYear?.id]);
 
   // Admin notification: teachers submitted lesson plans for approval.

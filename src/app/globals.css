@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Inzozi Academy — Lesson Plan System.
+   LessonHub — Lesson Planning & Knowledge Management.
    Premium education design system built on the official brand:
      Primary navy  #16246E   Yellow  #F4C928   White  #FFFFFF
      Background    #F5F7FC   Text    #172033 / #64748B
@@ -12,7 +12,7 @@
 
 @theme {
   /* Brand — navy */
-  --color-navy-900: #0E1A4A;
+  --color-navy-900: #0F1640;
   --color-navy-800: #16246E;
   --color-navy-700: #1D2E86;
 
@@ -20,13 +20,13 @@
   --color-royal-700: #101B54;
   --color-royal-600: #16246E;
   --color-royal-500: #26378F;
-  --color-royal-100: #DDE3F5;
-  --color-royal-50: #F0F3FB;
+  --color-royal-100: #DFE4F4;
+  --color-royal-50: #F1F3FA;
 
-  /* Brand — yellow accent */
-  --color-gold: #F4C928;
+  /* Brand — muted gold accent */
+  --color-gold: #C9A227;
   --color-gold-600: #A9891A;
-  --color-gold-soft: #FCF3CE;
+  --color-gold-soft: #F6EFDA;
 
   /* Status */
   --color-ok: #16A34A;
@@ -36,71 +36,101 @@
   --color-danger: #DC2626;
   --color-danger-soft: #FDECEC;
 
-  /* Neutrals */
-  --color-ink: #172033;
-  --color-ink-2: #64748B;
-  --color-ink-3: #94A3B8;
-  --color-line: #E2E8F0;
-  --color-line-soft: #EDF1F7;
-  --color-bg: #F5F7FC;
+  /* Neutrals — warm cream base, navy-forward text */
+  --color-ink: #1B2448;
+  --color-ink-2: #5D6783;
+  --color-ink-3: #97A0B8;
+  --color-line: #E3DFD3;
+  --color-line-soft: #EDEAE0;
+  --color-bg: #F7F3EA;
   --color-surface: #FFFFFF;
-  --color-surface-2: #F8FAFC;
+  --color-surface-2: #FCFAF4;
+
+  /* App shell (sidebar) — warm cream */
+  --side-bg: #FCFAF4;
+  --side-border: #E6E1D4;
+  --side-text: #5D6783;
+  --side-strong: #16246E;
+  --side-hover: rgba(22, 36, 110, 0.05);
+  --side-active: rgba(22, 36, 110, 0.08);
+
+  /* Auth screens — light */
+  --auth-tint-1: rgba(201, 162, 39, 0.16);
+  --auth-tint-2: rgba(22, 36, 110, 0.05);
+  --auth-line: #E3DFD3;
+  --auth-shadow: rgba(31, 26, 12, 0.10);
 
   --font-serif: Georgia, "Times New Roman", serif;
-  --radius-card: 14px;
+  --radius-card: 12px;
 }
 
 /* Dark theme remaps every token, including the legacy names
    (--color-brand-*) used inline across the app, so the whole UI adapts
    without component changes. */
+/* Dark mode is pure black end to end; separation comes from hairline
+   borders and the light accent text, never from grey panels. */
 [data-theme="dark"] {
-  --color-navy-900: #070D22;
-  --color-navy-800: #0B1226;
-  --color-navy-700: #101A38;
+  --color-navy-900: #000000;
+  --color-navy-800: #060606;
+  --color-navy-700: #0A0A0C;
   --color-royal-700: #8FA6FF;
   --color-royal-500: #4E68D8;
-  --color-royal-600: #3C55C4;
-  --color-royal-100: #22305C;
-  --color-royal-50: #16203F;
-  --color-gold: #F4C928;
+  --color-royal-600: #6B7FEF;
+  --color-royal-100: #1A1A20;
+  --color-royal-50: #0E0E12;
+  --color-gold: #D9BC66;
   --color-gold-600: #E7C44A;
-  --color-gold-soft: #33290F;
+  --color-gold-soft: #2A2210;
   --color-ok: #3FBF84;
   --color-ok-soft: #12301F;
   --color-warning: #F0A23C;
   --color-warning-soft: #33240D;
   --color-danger: #F17870;
   --color-danger-soft: #35191B;
-  --color-ink: #E9EDF8;
-  --color-ink-2: #A9B6CF;
-  --color-ink-3: #7D8CA9;
-  --color-line: #26314F;
-  --color-line-soft: #1B2440;
-  --color-bg: #0B1023;
-  --color-surface: #111834;
-  --color-surface-2: #0E1530;
+  --color-ink: #F5F7FF;
+  --color-ink-2: #C6CEE0;
+  --color-ink-3: #8F99B2;
+  --color-line: #26262B;
+  --color-line-soft: #171719;
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-surface-2: #060606;
+
+  /* App shell (sidebar) — dark */
+  --side-bg: #000000;
+  --side-border: #232323;
+  --side-text: #A5AEBF;
+  --side-strong: #FFFFFF;
+  --side-hover: rgba(255, 255, 255, 0.07);
+  --side-active: rgba(255, 255, 255, 0.12);
+
+  /* Auth screens — dark */
+  --auth-tint-1: rgba(244, 201, 40, 0.07);
+  --auth-tint-2: rgba(255, 255, 255, 0.04);
+  --auth-line: #232323;
+  --auth-shadow: rgba(0, 0, 0, 0.6);
 
   /* Legacy aliases (pages reference these inline) */
-  --color-brand-900: #070D22;
+  --color-brand-900: #000000;
   --color-brand-800: #A7BEFC;
   --color-brand-700: #8FA6FF;
   --color-brand-600: #4E68D8;
-  --color-brand-100: #22305C;
-  --color-brand-50: #16203F;
-  --color-accent: #F4C928;
-  --color-accent-soft: #33290F;
+  --color-brand-100: #1A1A20;
+  --color-brand-50: #0E0E12;
+  --color-accent: #D9BC66;
+  --color-accent-soft: #2A2210;
 }
 
 :root {
   /* Legacy aliases map onto the brand palette (light values) */
-  --color-brand-900: #0E1A4A;
+  --color-brand-900: #0F1640;
   --color-brand-800: #1D2E86;
   --color-brand-700: #16246E;
   --color-brand-600: #26378F;
-  --color-brand-100: #DDE3F5;
-  --color-brand-50: #F0F3FB;
-  --color-accent: #F4C928;
-  --color-accent-soft: #FCF3CE;
+  --color-brand-100: #DFE4F4;
+  --color-brand-50: #F1F3FA;
+  --color-accent: #C9A227;
+  --color-accent-soft: #F6EFDA;
 }
 
 /* ---------- base ---------- */
@@ -124,7 +154,7 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 h2 { font-size: 1.05rem; margin: 0 0 12px; }
 h3 { font-size: 0.95rem; margin: 0 0 8px; }
 
-*::selection { background: rgba(22, 36, 110, 0.16); }
+*::selection { background: rgba(201, 162, 39, 0.25); }
 
 /* Accessible focus */
 :focus-visible {
@@ -289,7 +319,7 @@ a.card:hover, button.card:hover {
   justify-content: center;
   gap: 7px;
   border: 1px solid var(--color-line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-ink);
   padding: 9px 15px;
@@ -311,7 +341,7 @@ a.card:hover, button.card:hover {
   background: var(--color-royal-600);
   border-color: var(--color-royal-600);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(22, 36, 110, 0.22);
+  box-shadow: 0 1px 2px rgba(15, 22, 64, 0.4);
 }
 .btn-primary:hover {
   background: var(--color-royal-500);
@@ -321,14 +351,14 @@ a.card:hover, button.card:hover {
 }
 .btn-accent {
   background: var(--color-gold);
-  border-color: #E4B91F;
+  border-color: #B08C1F;
   color: #241C00;
-  box-shadow: 0 2px 8px rgba(244, 201, 40, 0.3);
+  box-shadow: 0 1px 2px rgba(15, 22, 64, 0.25);
 }
 .btn-accent:hover {
-  background: #F7D34C;
-  border-color: #E4B91F;
-  color: #241C00;
+  background: #B89320;
+  border-color: #B08C1F;
+  color: #FCFAF4;
 }
 .btn-danger { background: var(--color-surface); color: var(--color-danger); border-color: rgba(220, 38, 38, 0.35); }
 .btn-danger:hover { background: var(--color-danger-soft); border-color: rgba(220, 38, 38, 0.5); }
@@ -711,8 +741,8 @@ table.planner th.col-area { width: 190px; }
   width: 244px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, var(--color-navy-800) 0%, var(--color-navy-900) 100%);
-  color: #dfe6f5;
+  background: var(--side-bg);
+  color: var(--side-text);
   transition: width 0.22s ease, transform 0.25s ease;
   overflow-x: hidden;
 }
@@ -722,27 +752,15 @@ table.planner th.col-area { width: 190px; }
   gap: 10px;
   padding: 14px 14px 10px;
   text-decoration: none;
-  color: #fff;
+  color: var(--side-strong);
   min-height: 60px;
 }
-.sidebar__logo {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  border-radius: 10px;
-  background: #fff;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-.sidebar__logo img { width: 100%; height: 100%; object-fit: contain; }
-.sidebar__title { font-weight: 700; line-height: 1.15; white-space: nowrap; transition: opacity 0.18s ease; }
+.sidebar__title { font-weight: 800; line-height: 1.15; white-space: nowrap; transition: opacity 0.18s ease; color: var(--side-strong); }
 .sidebar__title small {
   display: block;
   font-weight: 500;
   font-size: 0.64rem;
-  color: #A9B6E4;
+  color: var(--side-text);
   white-space: nowrap;
   overflow: hidden;
   max-width: 100%;
@@ -758,9 +776,9 @@ table.planner th.col-area { width: 190px; }
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--color-gold);
+  background: var(--side-hover);
+  border: 1px solid var(--side-border);
+  color: var(--color-gold-600);
   padding: 3px 9px;
   border-radius: 999px;
 }
@@ -771,7 +789,7 @@ table.planner th.col-area { width: 190px; }
   gap: 10px;
   padding: 9px 10px;
   border-radius: 9px;
-  color: #B9C5E2;
+  color: var(--side-text);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.87rem;
@@ -779,8 +797,8 @@ table.planner th.col-area { width: 190px; }
   transition: background 0.15s, color 0.15s;
 }
 .sidebar__nav a .ico { width: 20px; flex: 0 0 20px; display: grid; place-items: center; }
-.sidebar__nav a:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
-.sidebar__nav a.active { background: rgba(255, 255, 255, 0.1); color: #fff; box-shadow: inset 3px 0 0 var(--color-gold); }
+.sidebar__nav a:hover { background: var(--side-hover); color: var(--side-strong); }
+.sidebar__nav a.active { background: var(--side-active); color: var(--side-strong); box-shadow: inset 3px 0 0 var(--color-gold); }
 .nav-badge {
   display: inline-grid;
   place-items: center;
@@ -794,9 +812,9 @@ table.planner th.col-area { width: 190px; }
   font-size: 0.66rem;
   font-weight: 800;
 }
-.sidebar__foot { padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
+.sidebar__foot { padding: 10px; border-top: 1px solid var(--side-border); }
 .sidebar__userbox { display: flex; align-items: center; gap: 9px; padding: 4px 4px 10px; text-decoration: none; color: inherit; border-radius: 9px; }
-.sidebar__userbox:hover { background: rgba(255, 255, 255, 0.06); }
+.sidebar__userbox:hover { background: var(--side-hover); }
 .avatar {
   width: 32px;
   height: 32px;
@@ -811,13 +829,13 @@ table.planner th.col-area { width: 190px; }
   text-transform: uppercase;
 }
 .usermeta { min-width: 0; }
-.usermeta .name { font-size: 0.8rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.usermeta .role { font-size: 0.66rem; color: #A9B6E4; text-transform: capitalize; }
+.usermeta .name { font-size: 0.8rem; font-weight: 700; color: var(--side-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.usermeta .role { font-size: 0.66rem; color: var(--side-text); text-transform: capitalize; }
 .sidebar__foot-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .sidebar select {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--side-hover);
+  color: var(--side-strong);
+  border: 1px solid var(--side-border);
   border-radius: 8px;
   padding: 5px 8px;
   font-size: 0.78rem;
@@ -826,16 +844,16 @@ table.planner th.col-area { width: 190px; }
 .sidebar select option { color: #172033; }
 .sidebar__logout {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #dfe6f5;
+  border: 1px solid var(--side-border);
+  color: var(--side-text);
 }
-.sidebar__logout:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.45); }
+.sidebar__logout:hover { background: var(--side-hover); color: var(--side-strong); }
 .sidebar .btn-icon {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #B9C5E2;
+  background: var(--side-hover);
+  border-color: var(--side-border);
+  color: var(--side-text);
 }
-.sidebar .btn-icon:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.sidebar .btn-icon:hover { background: var(--side-active); color: var(--side-strong); }
 
 /* collapsed (desktop, icons only) */
 .collapsed .sidebar { width: 64px; }
@@ -901,9 +919,9 @@ table.planner th.col-area { width: 190px; }
   justify-content: center;
   padding: 28px 16px;
   background:
-    radial-gradient(1100px 560px at 85% -12%, rgba(244, 201, 40, 0.1), transparent 60%),
-    radial-gradient(800px 420px at 8% 108%, rgba(255, 255, 255, 0.06), transparent 55%),
-    linear-gradient(160deg, var(--color-navy-900) 0%, var(--color-navy-800) 60%, #1D2E86 100%);
+    radial-gradient(1100px 560px at 85% -12%, var(--auth-tint-1), transparent 60%),
+    radial-gradient(800px 420px at 8% 108%, var(--auth-tint-2), transparent 55%),
+    var(--color-bg);
 }
 .auth-card { width: 100%; max-width: 440px; animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .auth-logo {
@@ -911,23 +929,22 @@ table.planner th.col-area { width: 190px; }
   height: 60px;
   margin: 0 auto 12px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-gold);
+  color: #241C00;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(4, 9, 24, 0.35);
+  box-shadow: 0 8px 24px var(--auth-shadow);
 }
-.auth-logo img { width: 100%; height: 100%; object-fit: contain; }
-.auth-title { color: #fff; text-align: center; }
-.auth-sub { color: #B9C5E2; text-align: center; font-size: 0.85rem; }
+.auth-title { color: var(--color-ink); text-align: center; }
+.auth-sub { color: var(--color-ink-2); text-align: center; font-size: 0.85rem; max-width: 340px; margin-inline: auto; }
 .auth-panel {
   background: var(--color-surface);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--auth-line);
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(4, 9, 24, 0.4);
+  box-shadow: 0 24px 60px var(--auth-shadow);
   padding: 22px;
 }
-.auth-footer { color: #B9C5E2; font-size: 0.8rem; }
+.auth-footer { color: var(--color-ink-2); font-size: 0.8rem; }
 .auth-footer a { color: var(--color-gold); font-weight: 600; text-decoration: none; }
 .auth-footer a:hover { text-decoration: underline; }
 
@@ -953,6 +970,96 @@ table.planner th.col-area { width: 190px; }
   border-radius: 4px;
   border: 1px solid var(--color-line-soft);
   font-size: 0.76rem;
+}
+
+/* ---------- calendar (month grid) ---------- */
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.cal-dow {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  padding: 6px 0;
+}
+.cal-cell {
+  position: relative;
+  min-height: 96px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-surface-2);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cal-cell:hover { border-color: var(--color-royal-100); }
+.cal-out { background: transparent; border-style: dashed; opacity: 0.5; }
+.cal-today { border-color: var(--color-royal-500); box-shadow: 0 0 0 2px rgba(22, 36, 110, 0.12); }
+.cal-day {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+.cal-today .cal-day {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-royal-600);
+  color: #fff;
+}
+.cal-plans { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: var(--color-royal-50);
+  border: 1px solid var(--color-royal-100);
+  color: var(--color-royal-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cal-plan:hover { background: var(--color-royal-100); }
+.cal-plan-pending { border-style: dashed; color: var(--color-gold-600); background: var(--color-gold-soft); border-color: var(--color-gold-soft); }
+.cal-plan .cal-plan-rows { opacity: 0.75; font-weight: 800; }
+.cal-more { font-size: 0.7rem; font-weight: 800; color: var(--color-ink-3); padding-left: 6px; }
+.cal-add {
+  margin-top: auto;
+  align-self: flex-end;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px dashed var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-3);
+  font-weight: 800;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+}
+.cal-cell:hover .cal-add { opacity: 1; }
+.cal-add:hover { background: var(--color-royal-600); border-color: var(--color-royal-600); color: #fff; }
+@media (max-width: 900px) {
+  .cal-cell { min-height: 64px; padding: 5px; }
+  .cal-plan { font-size: 0.66rem; padding: 2px 6px; }
 }
 
 /* ---------- toasts & modal ---------- */

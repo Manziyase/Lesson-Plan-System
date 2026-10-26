@@ -3,10 +3,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "Inzozi Academy — Lesson Planning & Knowledge Management",
-  description:
-    "Lesson planning and knowledge management for Rwandan schools. Plan with the four-column table: Time · Learning Area · Learning Competence · Lesson Procedure.",
-  icons: { icon: "/brand/logo-mark.png" },
+  title: "LessonHub — Plan Once. Teach Better. Grow Together.",
+  description: "A smarter home for lesson planning and teaching knowledge.",
 };
 
 export const viewport: Viewport = {

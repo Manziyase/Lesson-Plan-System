@@ -25,7 +25,9 @@ function LoginForm() {
         setRegOpen(r.registrationOpen ?? false);
         setSignupOpen(r.signupOpen ?? false);
       })
-      .catch(() => {});
+      // Swallow only network blips — log anything else so problems
+      // surface in the console instead of silently hiding the links.
+      .catch((e) => console.error("register-status check failed:", e));
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -47,10 +49,10 @@ function LoginForm() {
       <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 16, position: "relative" }}>
           <div className="auth-logo">
-            <img src="/brand/logo-mark.png" alt="Inzozi Academy" />
+            <Icon name="book" size={28} />
           </div>
-          <h1 className="auth-title" style={{ fontSize: "1.3rem", margin: "0 0 2px" }}>Inzozi Academy</h1>
-          <p className="auth-sub">{t("Lesson Planning & Knowledge Management for Rwandan Schools")}</p>
+          <h1 className="auth-title" style={{ fontSize: "1.3rem", margin: "0 0 2px" }}>LessonHub</h1>
+          <p className="auth-sub">{t("Plan Once. Teach Better. Grow Together.")}</p>
           <div style={{ position: "absolute", top: -6, right: -6 }}>
             <ThemeToggle />
           </div>
@@ -94,7 +96,7 @@ function LoginForm() {
         </div>
 
         <div className="auth-footer" style={{ textAlign: "center", marginTop: 14 }}>
-          © {new Date().getFullYear()} Inzozi Academy · {t("Lesson Planning & Knowledge Management for Rwandan Schools")}
+          © {new Date().getFullYear()} LessonHub · {t("A smarter home for lesson planning and teaching knowledge.")}
         </div>
       </div>
     </div>
