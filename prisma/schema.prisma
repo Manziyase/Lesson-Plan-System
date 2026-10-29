@@ -8,8 +8,11 @@
  *
  * Legacy ids (school_rt, user_ru, plan_7361a1, plan_7361a1_r1, …) are kept
  * verbatim so bookmarks, imported rows and lesson ids stay stable.
- * String arrays (subjects, classes, levels, terms) are JSON-encoded for
- * SQLite compatibility; the data layer parses them through helpers.
+ * String arrays (subjects, classes, levels, terms) are JSON-encoded (a legacy
+ * habit from the SQLite build); the data layer parses them through helpers.
+ *
+ * The datasource is PostgreSQL — on Vercel the filesystem is read-only and
+ * ephemeral, so the old SQLite file could not be used in production.
  */
 
 generator client {
@@ -17,7 +20,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

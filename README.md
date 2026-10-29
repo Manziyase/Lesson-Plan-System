@@ -127,22 +127,38 @@ The legacy `data/db.json` is never modified.
 
 | Env var | Default | Purpose |
 |---------|---------|---------|
-| `DATABASE_URL` | `file:./dev.db` | SQLite file (or a Postgres URL) |
+| `DATABASE_URL` | — (required) | PostgreSQL connection string (Neon, Vercel Postgres, Supabase, …) |
+| `REGISTRATION_CLOSED` | unset | `1` disables self-registration |
 | `PORT` | `3000` (dev: 3100) | HTTP port |
 
-### Using PostgreSQL instead of SQLite
+### Database (Neon or any PostgreSQL)
 
-1. In `prisma/schema.prisma`, change `provider = "sqlite"` to `"postgresql"`.
-2. Set `DATABASE_URL` to your Postgres connection string.
-3. `npx prisma db push` (or `prisma migrate deploy`).
+The datasource provider is `postgresql`; there is no SQLite build any more.
+
+1. Create a project at https://console.neon.tech (free plan, no card) and copy
+   its connection string from **Connection Details**.
+2. Set `DATABASE_URL` to that string (`?sslmode=require`), locally in `.env` and
+   on the host (Vercel → Settings → Environment Variables).
+3. Create the schema: `npx prisma db push`.
+4. Load data — pick one:
+   - `npm run db:dump-sqlite` exports the rows from the local `prisma/dev.db`
+     into `prisma/dev-data.sql`; run that file with `psql "$DATABASE_URL" -f
+     prisma/dev-data.sql` (ids and password hashes are preserved verbatim);
+   - `npm run db:seed-demo` for the demo school;
+   - `npm run db:migrate:legacy -- --from data/db.json` for a legacy JSON export.
+
+Use Neon's **direct** (non-pooled) hostname for `DATABASE_URL`: `prisma db push`
+and the migration scripts do not work through the transaction pooler. If you
+later need pooling, point `url` at the `-pooler` host with `?pgbouncer=true`.
 
 ## Deploying for a school
 
 1. Node 18.18+ on a small Linux VM (or any Node host).
 2. `npm install && npx prisma db push && npm run build`
-3. `DATABASE_URL="file:/var/lib/ireme/ireme.db" PORT=3000 npm start` behind
-   nginx or a process manager (systemd/pm2).
-4. Back up the single SQLite file (or use Postgres) — that's the whole database.
+3. `DATABASE_URL="postgresql://…" PORT=3000 npm start` behind nginx or a
+   process manager (systemd/pm2), or deploy `vercel.json` + Neon (above).
+4. Back up the database — `pg_dump` against Neon, or rely on Neon's restore
+   window / branching.
 5. Log in as admin → Academic Years, Teachers, School Settings.
 
 ## Tests

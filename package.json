@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:seed-demo": "node scripts/seed-demo.mjs",
     "db:migrate:legacy": "node scripts/migrate-legacy.mjs",
+    "db:dump-sqlite": "node scripts/export-sqlite-sql.mjs",
     "smoke": "node scripts/smoke-next.mjs",
     "postinstall": "prisma generate"
   },

@@ -2,6 +2,7 @@ node_modules/
 .next/
 out/
 prisma/*.db
+prisma/dev-data.sql
 prisma/*.db-journal
 prisma/*.db-*
 .env
