@@ -139,7 +139,11 @@ The datasource provider is `postgresql`; there is no SQLite build any more.
    its connection string from **Connection Details**.
 2. Set `DATABASE_URL` to that string (`?sslmode=require`), locally in `.env` and
    on the host (Vercel → Settings → Environment Variables).
-3. Create the schema: `npx prisma db push`.
+3. Create the schema: `npx prisma db push`. On Vercel nothing manual is
+   needed — `vercel.json` builds with `prisma generate && prisma db push && next
+   build`, so the first deploy creates the tables and later deploys only apply
+   schema changes (`db push` refuses destructive changes rather than dropping
+   data).
 4. Load data — pick one:
    - `npm run db:dump-sqlite` exports the rows from the local `prisma/dev.db`
      into `prisma/dev-data.sql`; run that file with `psql "$DATABASE_URL" -f
