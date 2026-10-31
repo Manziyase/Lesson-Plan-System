@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Icon, type IconName } from "@/components/icons";
@@ -205,12 +206,6 @@ const FAQS = [
   },
 ];
 
-const MOCK_ROWS = [
-  { time: "08:00", area: "English", text: "Unit 2 · My school — describe your school in three sentences.", tone: "gold" },
-  { time: "08:40", area: "Mathematics", text: "Fractions: compare and order halves, quarters and thirds.", tone: "navy" },
-  { time: "09:20", area: "Kinyarwanda", text: "Ibisobanuro by’umuryango — reading and comprehension.", tone: "navy" },
-];
-
 const LIBRARY = [
   { area: "English", cls: "P5", unit: "My school", term: "Term 1" },
   { area: "Mathematics", cls: "P4", unit: "Fractions", term: "Term 1" },
@@ -314,6 +309,7 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
 
           <nav className="land-nav__links" aria-label="Sections">
             <a href="#features">Features</a>
+            <a href="#classrooms">Classrooms</a>
             <a href="#how">How it works</a>
             <a href="#inside">Inside the app</a>
             <a href="#faq">FAQ</a>
@@ -345,6 +341,7 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
           <div className="land-mobile" id="land-mobile-menu">
             {[
               ["#features", "Features"],
+              ["#classrooms", "From the classroom"],
               ["#how", "How it works"],
               ["#inside", "Inside the app"],
               ["#faq", "FAQ"],
@@ -421,44 +418,40 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
               onPointerMove={onHeroMove}
               onPointerLeave={resetHero}
             >
-              <div className="land-mock" aria-hidden="true">
-                <div className="land-mock__bar">
-                  <span className="land-dot land-dot--r" />
-                  <span className="land-dot land-dot--y" />
-                  <span className="land-dot land-dot--g" />
-                  <span className="land-mock__url">lessonhub · planner</span>
+              <div className="land-photo">
+                <Image
+                  src="/images/hero-classroom.webp"
+                  alt="Pupils and their teacher working together at a table in a Rwandan classroom"
+                  width={1280}
+                  height={853}
+                  priority
+                  sizes="(max-width: 980px) 92vw, 520px"
+                  className="land-photo__img"
+                />
+                <div className="land-photo__tint" aria-hidden="true" />
+                <span className="land-photo__tag">
+                  <Icon name="mapPin" size={14} /> Inzozi Academy · Kigali
+                </span>
+              </div>
+
+              <div className="land-hero-card" aria-hidden="true">
+                <div className="land-hero-card__head">
+                  <span className="land-avatar">A</span>
+                  <div>
+                    <strong>P5 · English</strong>
+                    <span>My school · Term 1</span>
+                  </div>
+                  <span className="land-chip land-chip--ok">
+                    <Icon name="check" size={12} /> Approved
+                  </span>
                 </div>
-
-                <div className="land-mock__body">
-                  <div className="land-mock__title">
-                    <div>
-                      <strong>P5 · English</strong>
-                      <span>Term 1 · Week 4 · Ms. Ann</span>
-                    </div>
-                    <span className="land-chip land-chip--ok">
-                      <Icon name="check" size={12} /> Approved
-                    </span>
-                  </div>
-
-                  <div className="land-mock__rows">
-                    {MOCK_ROWS.map((row, i) => (
-                      <div className="land-mrow" key={row.time} style={delay(i)}>
-                        <span className={`land-time${row.tone === "gold" ? " is-gold" : ""}`}>{row.time}</span>
-                        <div className="land-mrow__text">
-                          <strong>{row.area}</strong>
-                          <span>{row.text}</span>
-                        </div>
-                        <span className="land-mrow__tick">
-                          <Icon name="check" size={12} />
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="land-mock__foot">
-                    <span>3 lessons · 1 term</span>
-                    <span className="land-mock__pulse" />
-                  </div>
+                <div className="land-hero-card__meta">
+                  <span>
+                    <Icon name="clock" size={13} /> 08:00–08:40
+                  </span>
+                  <span>
+                    <Icon name="checkCircle" size={13} /> Signed off by the Head Teacher
+                  </span>
                 </div>
               </div>
 
@@ -467,9 +460,6 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
               </div>
               <div className="land-float land-float--2">
                 <Icon name="globe" size={16} /> EN · FR · RW
-              </div>
-              <div className="land-float land-float--3">
-                <Icon name="printer" size={16} /> Print-ready
               </div>
             </div>
           </div>
@@ -536,6 +526,81 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
                   <p>{s.text}</p>
                 </article>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------- classrooms */}
+        <section className="land-section land-section--photo" id="classrooms">
+          <div className="land-wrap land-stories">
+            <div className="land-stories__copy" data-reveal>
+              <span className="land-eyebrow">From the classroom</span>
+              <h2 className="land-h2">Built with teachers, not just for them</h2>
+              <p className="land-sub">
+                LessonHub started as a paper planner in a Kigali staff room. Every screen has been
+                shaped by the people who use it on a Monday morning — class teachers, heads of
+                department and the head teacher who signs the plans.
+              </p>
+
+              <blockquote className="land-quote">
+                <p>
+                  “Sunday evening used to be copy-the-plan-into-a-new-book evening. Now I duplicate
+                  last term’s lesson, change the date and adjust the competence. Fifteen minutes
+                  instead of two hours.”
+                </p>
+                <footer>
+                  <span className="land-avatar land-avatar--gold">A</span>
+                  <div>
+                    <strong>Ms. Ann</strong>
+                    <span>P5 class teacher · Kigali</span>
+                  </div>
+                </footer>
+              </blockquote>
+
+              <div className="land-stories__facts">
+                <div>
+                  <strong>15 min</strong>
+                  <span>to plan a full teaching week</span>
+                </div>
+                <div>
+                  <strong>1 click</strong>
+                  <span>to reuse a lesson that worked</span>
+                </div>
+                <div>
+                  <strong>0 paper</strong>
+                  <span>lost between the staff room and the office</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="land-stories__photos" data-reveal>
+              <figure className="land-shot land-shot--main">
+                <div className="land-shot__frame">
+                  <Image
+                    src="/images/classroom-reading.webp"
+                    alt="Children reading picture books together during a lesson"
+                    width={1000}
+                    height={738}
+                    sizes="(max-width: 860px) 92vw, 460px"
+                    className="land-shot__img"
+                  />
+                </div>
+                <figcaption>Reading hour · lower primary</figcaption>
+              </figure>
+
+              <figure className="land-shot land-shot--side">
+                <div className="land-shot__frame">
+                  <Image
+                    src="/images/classroom-wide.webp"
+                    alt="A classroom of pupils working at their desks"
+                    width={1000}
+                    height={666}
+                    sizes="(max-width: 860px) 92vw, 320px"
+                    className="land-shot__img"
+                  />
+                </div>
+                <figcaption>Every plan, one shared library</figcaption>
+              </figure>
             </div>
           </div>
         </section>
@@ -761,6 +826,16 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
         <section className="land-section">
           <div className="land-wrap">
             <div className="land-cta" data-reveal>
+              <Image
+                src="/images/cta-classroom.webp"
+                alt=""
+                width={1280}
+                height={853}
+                sizes="(max-width: 1160px) 100vw, 1160px"
+                className="land-cta__bg"
+                aria-hidden="true"
+              />
+              <div className="land-cta__veil" aria-hidden="true" />
               <div className="land-cta__glow" aria-hidden="true" />
               <span className="land-cta__eyebrow">Start this week</span>
               <h2>Ready to plan a calmer week?</h2>
@@ -796,12 +871,24 @@ export default function LandingPage({ registrationOpen }: { registrationOpen: bo
           </div>
           <nav className="land-foot__links" aria-label="Footer">
             <a href="#features">Features</a>
+            <a href="#classrooms">From the classroom</a>
             <a href="#how">How it works</a>
             <a href="#faq">FAQ</a>
             <Link href="/login">Sign in</Link>
             <Link href={startHref}>{registrationOpen ? "Register" : "Open app"}</Link>
           </nav>
           <p className="land-foot__copy">© {new Date().getFullYear()} LessonHub · Made for Rwandan schools</p>
+          <p className="land-foot__credit">
+            Classroom photography:{" "}
+            <a href="https://commons.wikimedia.org/wiki/File:Reading_wikipedia_in_classroom_in_Rwanda_2023_019.jpg" target="_blank" rel="noreferrer">
+              Rumuri Rutazima
+            </a>{" "}
+            (CC BY 4.0) and{" "}
+            <a href="https://commons.wikimedia.org/wiki/File:Early_literacy.jpg" target="_blank" rel="noreferrer">
+              TEACHRwanda
+            </a>{" "}
+            (CC BY-SA 4.0) · Wikimedia Commons.
+          </p>
         </div>
       </footer>
     </div>
