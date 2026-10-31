@@ -47,6 +47,10 @@ function LoginForm() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
+        <Link href="/" className="auth-home">
+          <Icon name="arrowLeft" size={15} />
+          {t("Back to home")}
+        </Link>
         <div style={{ textAlign: "center", marginBottom: 16, position: "relative" }}>
           <div className="auth-logo">
             <Icon name="book" size={28} />

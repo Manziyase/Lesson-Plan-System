@@ -3,6 +3,7 @@ node_modules/
 out/
 prisma/*.db
 prisma/dev-data.sql
+prisma/neon-backup-*.json
 prisma/*.db-journal
 prisma/*.db-*
 .env

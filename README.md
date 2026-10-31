@@ -21,7 +21,7 @@ year — searchable, reusable, and ready for the head teacher's file.
 
 ```bash
 npm install
-npx prisma db push            # create/refresh the SQLite schema
+npx prisma db push            # create/update the PostgreSQL schema (Neon)
 npm run db:seed-demo          # optional: GS Kanyinya demo school (fresh installs)
 npm run dev                   # http://localhost:3100
 ```
@@ -57,12 +57,14 @@ src/
       profile/                account info, language, password change
       admin/                  years · teachers · school settings (admin only)
     api/                      REST endpoints (auth, meta, plans, lessons, years, teachers, …)
-    login/ signup/            public pages (signup = first-run wizard)
+    page.tsx                  public landing page (signed-in users → /dashboard)
+    login/ register/ signup/  public pages (signup = first-run wizard)
   components/                 Shell (topbar/nav/year+language), UI kit (toast, modal, chips…)
+    landing/                  marketing landing page (hero, features, live demo, FAQ)
   lib/                        db (Prisma), session, password (scrypt), plans (similarity),
                               plan-input (validation), util, i18n (en/fr/rw)
 prisma/schema.prisma          relational schema (ids preserved from legacy data)
-scripts/migrate-legacy.mjs    JSON → SQLite migration (non-destructive)
+scripts/migrate-legacy.mjs    JSON → PostgreSQL migration (non-destructive)
 scripts/seed-demo.mjs         demo school for fresh installs
 scripts/smoke-next.mjs        end-to-end API test (50 checks)
 ```
@@ -108,7 +110,7 @@ scripts/smoke-next.mjs        end-to-end API test (50 checks)
 ## Data migration (non-destructive)
 
 `npm run db:migrate:legacy` reads the legacy JSON database and writes into
-SQLite **only when the target is empty** (use `--force` to append; ids never
+PostgreSQL **only when the target is empty** (use `--force` to append; ids never
 collide):
 
 - every id is preserved (`school_rt`, `user_ru`, `plan_7361a1`,
@@ -134,6 +136,23 @@ The legacy `data/db.json` is never modified.
 ### Database (Neon or any PostgreSQL)
 
 The datasource provider is `postgresql`; there is no SQLite build any more.
+
+**Tooling — one tool, not four.** These are alternative ways to reach the same
+PostgreSQL database; the project uses the first row and must not mix in another
+ORM, or two clients would fight over one schema.
+
+| Package | Database tool | In this project |
+|---------|---------------|-----------------|
+| `prisma` + `@prisma/client` | Prisma ORM | **Installed and used** — `prisma/schema.prisma`, `src/lib/db.ts`, every API route |
+| `drizzle-orm` + `drizzle-kit` | Drizzle ORM | Not installed (Prisma alternative) |
+| `pg` | Node.js PostgreSQL driver | Not installed (Prisma ships its own engine) |
+| `sequelize` | Sequelize ORM | Not installed (Prisma alternative) |
+
+**Hosting — two separate things.** Vercel runs the Next.js app; Neon hosts the
+PostgreSQL database. They are linked by a single variable, `DATABASE_URL`,
+which points at Neon and is set in Vercel → Settings → Environment Variables
+(and in `.env` for local work). `vercel.json` runs `prisma generate` and
+`prisma db push` during the build, so the deployed app always has its tables.
 
 1. Create a project at https://console.neon.tech (free plan, no card) and copy
    its connection string from **Connection Details**.
