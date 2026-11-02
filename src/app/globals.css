@@ -872,6 +872,10 @@ table { color: inherit; }
 .notification-row p { margin: 4px 0; }
 .danger-card { border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-line)); }
 .danger-card form { display: grid; gap: 9px; max-width: 640px; }
+.danger-choice { display: flex; align-items: flex-start; gap: 9px; padding: 11px; border: 1px solid color-mix(in srgb, var(--color-danger) 38%, var(--color-line)); border-radius: 9px; cursor: pointer; }
+.danger-choice input { margin-top: 4px; accent-color: var(--color-danger); }
+.danger-choice span { display: grid; gap: 3px; }
+.danger-choice small { color: var(--color-ink-2); line-height: 1.4; }
 .lib-card .proc {
   font-size: 0.8rem;
   color: var(--color-ink-2);

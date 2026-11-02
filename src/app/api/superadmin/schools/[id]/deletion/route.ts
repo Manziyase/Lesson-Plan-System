@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getPlatformAdmin, platformUnauthorized } from "@/lib/platform-auth";
 import { randomToken } from "@/lib/password";
-import { auditFromRequest } from "@/lib/audit";
+import { auditFromRequest, requestMeta } from "@/lib/audit";
 export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,9 +21,19 @@ export async function POST(req: Request, { params }: Params) {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return Response.json({ error: "Invalid request." }, { status: 400 }); }
   const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 2000) : "";
+  const immediate = body.immediate === true;
   if (!reason || body.schoolName !== school.name) return Response.json({ error: "Provide a reason and enter the school's full name exactly." }, { status: 400 });
   const existing = await prisma.schoolDeletionRequest.findUnique({ where: { schoolId: id } });
-  if (existing && !existing.cancelledAt && !existing.executedAt) return Response.json({ error: "A deletion request is already pending." }, { status: 409 });
+  if (immediate) {
+    const executedAt = new Date();
+    const meta = requestMeta(req);
+    await prisma.$transaction(async (tx) => {
+      await tx.auditLog.create({ data: { id: `log_${randomToken()}`, actorType: "platform_admin", actorId: admin.id, actorName: admin.name, actorEmail: admin.email, action: "school.deleted_immediately", targetType: "school", targetId: id, schoolId: id, summary: `Permanently deleted school immediately: ${school.name}`, metadata: JSON.stringify({ requestedById: admin.id, requestedByName: admin.name, confirmedById: admin.id, confirmedByName: admin.name, reason, executedAt: executedAt.toISOString(), hadPendingRequest: !!(existing && !existing.cancelledAt && !existing.executedAt) }), ip: meta.ip, userAgent: meta.userAgent } });
+      await tx.school.delete({ where: { id } });
+    });
+    return Response.json({ deleted: true, deletedSchool: school.name });
+  }
+  if (existing && !existing.cancelledAt && !existing.executedAt) return Response.json({ error: "A deletion request is already pending. Cancel it before scheduling another request." }, { status: 409 });
   const configured = Number(process.env.SCHOOL_DELETION_GRACE_DAYS ?? 30);
   const graceDays = Number.isInteger(configured) ? Math.max(7, Math.min(configured, 180)) : 30;
   const scheduledFor = new Date(Date.now() + graceDays * 86400000);
