@@ -767,7 +767,7 @@ export default function SchoolsPage() {
                     <Icon name="info" size={16} />
                     <span>
                       No subscription is assigned.{" "}
-                      <Link href="/superadmin/subscriptions">Assign one from Subscriptions &amp; Billing</Link>.
+                      <Link href="/super-admin/subscriptions">Assign one from Subscriptions &amp; Billing</Link>.
                     </span>
                   </div>
                 )}
@@ -794,7 +794,7 @@ export default function SchoolsPage() {
                   title={`Users (${detail.counts.users})`}
                   icon="users"
                   action={
-                    <Link className="btn btn-sm" href={`/superadmin/users?schoolId=${detailSchool.id}`}>
+                    <Link className="btn btn-sm" href={`/super-admin/users?schoolId=${detailSchool.id}`}>
                       Manage users
                     </Link>
                   }

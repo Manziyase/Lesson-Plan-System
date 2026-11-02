@@ -196,7 +196,10 @@ npm run test:superadmin       # platform console end-to-end (needs the app on :3
 
 ## Super Admin console
 
-The platform console lives at `/superadmin` and is completely separate from
+The platform console login is `/super-admin/login`, and its dashboard is
+`/super-admin/dashboard`. Other console sections use the `/super-admin/...`
+prefix. The previous `/superadmin/...` URLs redirect to these permanent URLs.
+The console is completely separate from
 school workspaces. A Super Admin is a `PlatformAdmin` row — never a school
 `User` — so no school registration, teacher edit or profile update can grant
 platform access. School sessions (`slp_session`) and platform sessions
@@ -214,6 +217,12 @@ SUPERADMIN_PASSWORD="change-me-now" npm run sa:create
 The password is hashed with scrypt and is never printed or stored in plain
 text. By default the first sign-in must change it. Re-run with `--reset` to
 set a new password and revoke every existing platform session.
+
+Provisioning an authorized account requires access to the LessonHub server
+environment and its database; there is intentionally no public Super Admin
+registration page. Run `npm run sa:create` from the project directory and
+provide the name, email, and password when prompted. After provisioning, sign
+in at `/super-admin/login` locally or at the same path on the deployed site.
 
 Console sections: Overview, Schools, Users, Subscriptions & Billing,
 Announcements, Activity & Audit Logs, System Monitoring and Platform Settings.

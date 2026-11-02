@@ -132,7 +132,7 @@ async function main() {
       console.log(`✓ Super admin created: ${admin.name} <${admin.email}>`);
     }
 
-    console.log("  Sign in at /superadmin/login");
+    console.log("  Sign in at /super-admin/login");
     if (!keepPassword) {
       console.log("  A password change is required at first sign-in.");
     }

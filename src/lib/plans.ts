@@ -49,7 +49,7 @@ export function planSummary(p: {
   status: string;
   approvedByName: string;
   feedback?: string;
-  rows: { className?: string | null; learningArea?: string | null }[];
+  rows: { id?: string; position?: number; time?: string; classId?: string; className?: string | null; learningAreaId?: string; learningArea?: string | null; subUnit?: string; competence?: string; procedure?: string }[];
   updatedAt: Date;
 }) {
   return {
@@ -65,6 +65,18 @@ export function planSummary(p: {
     approvedByName: p.approvedByName,
     feedback: p.feedback ?? "",
     rows: p.rows.length,
+    preview: p.rows.map((r, index) => ({
+      id: r.id ?? `${p.id}_row_${index + 1}`,
+      position: r.position ?? index + 1,
+      time: r.time ?? "",
+      classId: r.classId ?? "",
+      className: r.className ?? "",
+      learningAreaId: r.learningAreaId ?? "",
+      learningArea: r.learningArea ?? "",
+      subUnit: r.subUnit ?? "",
+      competence: r.competence ?? "",
+      procedure: r.procedure ?? "",
+    })),
     classes: Array.from(new Set(p.rows.map((r) => r.className).filter(Boolean))) as string[],
     areas: Array.from(new Set(p.rows.map((r) => r.learningArea).filter(Boolean))) as string[],
     updatedAt: p.updatedAt,

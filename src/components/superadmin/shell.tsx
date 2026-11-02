@@ -25,25 +25,25 @@ export type SaAdmin = {
 };
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
-  { href: "/superadmin", label: "Overview", icon: "dashboard" },
-  { href: "/superadmin/schools", label: "Schools", icon: "school" },
-  { href: "/superadmin/users", label: "Users", icon: "users" },
-  { href: "/superadmin/subscriptions", label: "Subscriptions & Billing", icon: "creditCard" },
-  { href: "/superadmin/announcements", label: "Announcements", icon: "megaphone" },
-  { href: "/superadmin/logs", label: "Activity & Audit Logs", icon: "activity" },
-  { href: "/superadmin/monitoring", label: "System Monitoring", icon: "server" },
-  { href: "/superadmin/settings", label: "Platform Settings", icon: "settings" },
+  { href: "/super-admin/dashboard", label: "Overview", icon: "dashboard" },
+  { href: "/super-admin/schools", label: "Schools", icon: "school" },
+  { href: "/super-admin/users", label: "Users", icon: "users" },
+  { href: "/super-admin/subscriptions", label: "Subscriptions & Billing", icon: "creditCard" },
+  { href: "/super-admin/announcements", label: "Announcements", icon: "megaphone" },
+  { href: "/super-admin/logs", label: "Activity & Audit Logs", icon: "activity" },
+  { href: "/super-admin/monitoring", label: "System Monitoring", icon: "server" },
+  { href: "/super-admin/settings", label: "Platform Settings", icon: "settings" },
 ];
 
 const TITLES: Record<string, string> = {
-  "/superadmin": "Platform Overview",
-  "/superadmin/schools": "Schools",
-  "/superadmin/users": "Users",
-  "/superadmin/subscriptions": "Subscriptions & Billing",
-  "/superadmin/announcements": "Announcements",
-  "/superadmin/logs": "Activity & Audit Logs",
-  "/superadmin/monitoring": "System Monitoring",
-  "/superadmin/settings": "Platform Settings",
+  "/super-admin/dashboard": "Platform Overview",
+  "/super-admin/schools": "Schools",
+  "/super-admin/users": "Users",
+  "/super-admin/subscriptions": "Subscriptions & Billing",
+  "/super-admin/announcements": "Announcements",
+  "/super-admin/logs": "Activity & Audit Logs",
+  "/super-admin/monitoring": "System Monitoring",
+  "/super-admin/settings": "Platform Settings",
 };
 
 export function SuperAdminShell({
@@ -75,19 +75,19 @@ export function SuperAdminShell({
     try {
       await saApi("/api/superadmin/auth/logout", { method: "POST" });
     } finally {
-      window.location.href = "/superadmin/login";
+      window.location.href = "/super-admin/login";
     }
   }
 
   const cx = (...parts: (string | boolean | undefined)[]) => parts.filter(Boolean).join(" ");
-  const active = (href: string) => (href === "/superadmin" ? pathname === href : pathname.startsWith(href));
+  const active = (href: string) => (href === "/super-admin/dashboard" ? pathname === href : pathname.startsWith(href));
 
   return (
     <div className={cx("shell sa-shell", collapsed && "collapsed", mobileOpen && "mobile-open")}>
       <div className="scrim no-print" onClick={() => setMobileOpen(false)} aria-hidden="true" />
 
       <aside className="sidebar no-print" aria-label="Platform administration navigation">
-        <Link className="sidebar__brand" href="/superadmin">
+        <Link className="sidebar__brand" href="/super-admin/dashboard">
           <span className="sa-brandmark" aria-hidden="true">
             <Icon name="shield" size={20} />
           </span>
@@ -164,7 +164,7 @@ export function SuperAdminShell({
               <Icon name="lock" size={16} />
               <span>
                 Your account still uses a temporary password.{" "}
-                <Link href="/superadmin/settings#account">Change it now</Link>.
+                <Link href="/super-admin/settings#account">Change it now</Link>.
               </span>
             </div>
           ) : null}
@@ -173,7 +173,7 @@ export function SuperAdminShell({
               <Icon name="shield" size={16} />
               <span>
                 Multi-factor authentication is not enabled.{" "}
-                <Link href="/superadmin/settings#account">Enable MFA</Link> to protect platform administration.
+                <Link href="/super-admin/settings#account">Enable MFA</Link> to protect platform administration.
               </span>
             </div>
           ) : null}

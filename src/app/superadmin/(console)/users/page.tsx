@@ -404,7 +404,7 @@ export default function UsersPage() {
 
       <p className="sa-note">
         Disabling an account signs the person out everywhere and blocks new sign-ins. The school&apos;s last active
-        administrator cannot be disabled. <Link href="/superadmin/logs">Every change is audited.</Link>
+        administrator cannot be disabled. <Link href="/super-admin/logs">Every change is audited.</Link>
       </p>
 
       {/* ---------------- status change ---------------- */}

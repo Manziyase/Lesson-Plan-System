@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SuperAdminConsoleLayout({ children }: { children: React.ReactNode }) {
   const admin = await getPlatformAdmin();
-  if (!admin) redirect("/superadmin/login");
+  if (!admin) redirect("/super-admin/login");
   const settings = await getPlatformSettings();
 
   return (

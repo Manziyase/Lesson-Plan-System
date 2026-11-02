@@ -20,6 +20,7 @@ type PlanSummary = {
   classes: string[];
   areas: string[];
   feedback?: string;
+  preview: { id: string; position: number; time: string; className: string; learningArea: string; subUnit: string; competence: string; procedure: string }[];
   updatedAt: string;
 };
 
@@ -34,7 +35,8 @@ function ApprovalsInner() {
   const [pending, setPending] = useState<PlanSummary[] | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string>("");
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const [feedbackPlanId, setFeedbackPlanId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -65,7 +67,7 @@ function ApprovalsInner() {
       toast((e as Error).message, "err");
     }
     setApproving(null);
-    setShowFeedback(false);
+    setFeedbackPlanId(null);
   }
 
   if (!isAdmin) {
@@ -130,19 +132,33 @@ function ApprovalsInner() {
                 </div>
               </div>
               <div className="row-actions no-print">
-                <button className="btn btn-sm" onClick={() => setShowFeedback((v) => !v)}>
-                  <Icon name="eye" size={14} /> <span>{t("View")}</span>
+                <button className="btn btn-sm" aria-expanded={expandedPlanId === p.id} onClick={() => setExpandedPlanId((v) => v === p.id ? null : p.id)}>
+                  <Icon name="eye" size={14} /> <span>{expandedPlanId === p.id ? t("Hide lesson content") : t("View lesson content")}</span>
                 </button>
-                <button className="btn btn-sm" onClick={() => setShowFeedback((v) => !v)}>{t("Return for revision")}</button>
+                <button className="btn btn-sm" onClick={() => setFeedbackPlanId((v) => v === p.id ? null : p.id)}>{t("Return for revision")}</button>
                 <button className="btn btn-sm btn-accent" disabled={approving === p.id} onClick={() => approve(p.id)}>
                   <Icon name="checkCircle" size={14} /> <span>{t("Approve")}</span>
                 </button>
               </div>
-              {showFeedback ? (
+              {expandedPlanId === p.id ? (
+                <section className="approval-plan-content" aria-label={t("Submitted lesson plan content")}>
+                  <h2>{t("Submitted lesson content")}</h2>
+                  {p.preview.map((row) => (
+                    <article key={row.id} className="approval-lesson">
+                      <div className="approval-lesson__meta"><strong>{t("Lesson {n}", { n: row.position })}</strong>{row.time ? <span>{row.time}</span> : null}<Chip text={row.className || t("Class not specified")} kind="class" /><Chip text={row.learningArea || t("Learning area not specified")} kind="area" /></div>
+                      <h3>{row.competence.split(/[\n;•]+/).map((part) => part.trim()).find(Boolean) || t("Unit not specified")}</h3>
+                      {row.subUnit ? <div className="lesson-subunit">{row.subUnit}</div> : null}
+                      <div className="approval-lesson__section"><strong>{t("Learning competence")}</strong><p>{row.competence || "—"}</p></div>
+                      <div className="approval-lesson__section"><strong>{t("Lesson procedure")}</strong><p>{row.procedure || "—"}</p></div>
+                    </article>
+                  ))}
+                </section>
+              ) : null}
+              {feedbackPlanId === p.id ? (
                 <div className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <strong>{t("Feedback on this plan")}</strong>
-                    <button className="btn btn-sm btn-ghost" onClick={() => setShowFeedback(false)}>
+                    <strong>{t("Feedback and revision")}</strong>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setFeedbackPlanId(null)}>
                       <Icon name="x" size={14} />
                     </button>
                   </div>

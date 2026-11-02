@@ -844,6 +844,14 @@ table { color: inherit; }
 .lesson-progress .input { width: auto; padding: 4px 7px; font-size: .78rem; }
 .unit-progress-list { display: grid; gap: 5px; font-size: .8rem; }
 .unit-progress-list > div { display: flex; justify-content: space-between; gap: 8px; }
+.approval-plan-content { margin: 14px 0; padding: 14px; border: 1px solid var(--color-line-soft); border-radius: 12px; background: var(--color-surface-2); }
+.approval-plan-content > h2 { margin: 0 0 12px; font-size: 1rem; }
+.approval-lesson { padding: 14px; border: 1px solid var(--color-line-soft); border-radius: 10px; background: var(--color-surface); }
+.approval-lesson + .approval-lesson { margin-top: 10px; }
+.approval-lesson__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.approval-lesson h3 { margin: 12px 0 3px; font-size: 1rem; }
+.approval-lesson__section { margin-top: 12px; }
+.approval-lesson__section p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .lesson-discussion { margin-top: 16px; }
 .lesson-comment { padding: 12px; border: 1px solid var(--color-line-soft); border-radius: 10px; margin: 10px 0; }
 .lesson-comment.feedback { border-left: 3px solid var(--color-gold); background: color-mix(in srgb, var(--color-gold) 7%, var(--color-surface)); }

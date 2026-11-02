@@ -33,7 +33,7 @@ export function SuperAdminLogin() {
         setStep("mfa");
         setCode("");
       } else {
-        window.location.href = "/superadmin";
+        window.location.href = "/super-admin/dashboard";
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
@@ -56,7 +56,7 @@ export function SuperAdminLogin() {
         body: { challengeToken, code: code.trim() },
         redirectOn401: false,
       });
-      window.location.href = "/superadmin";
+      window.location.href = "/super-admin/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");
     } finally {

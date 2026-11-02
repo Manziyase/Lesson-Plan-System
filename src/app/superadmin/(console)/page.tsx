@@ -203,7 +203,7 @@ export default function OverviewPage() {
           </p>
         </SectionCard>
 
-        <SectionCard title="Plan distribution" icon="layers" action={<Link className="btn btn-sm" href="/superadmin/subscriptions">Manage</Link>}>
+        <SectionCard title="Plan distribution" icon="layers" action={<Link className="btn btn-sm" href="/super-admin/subscriptions">Manage</Link>}>
           {sub.distribution.length === 0 ? (
             <p className="muted">No subscriptions have been assigned yet.</p>
           ) : (
@@ -232,14 +232,14 @@ export default function OverviewPage() {
         <SectionCard
           title="Newest schools"
           icon="school"
-          action={<Link className="btn btn-sm" href="/superadmin/schools">View all</Link>}
+          action={<Link className="btn btn-sm" href="/super-admin/schools">View all</Link>}
         >
           {data.recent.schools.length === 0 ? (
             <p className="muted">No schools registered yet.</p>
           ) : (
             <div className="sa-recent-list">
               {data.recent.schools.map((school) => (
-                <Link key={school.id} className="sa-recent-row" href={`/superadmin/schools?school=${school.id}`}>
+                <Link key={school.id} className="sa-recent-row" href={`/super-admin/schools?school=${school.id}`}>
                   <span className="sa-avatar">{school.name.slice(0, 2).toUpperCase()}</span>
                   <span className="sa-recent-main">
                     <strong>{school.name}</strong>
@@ -261,7 +261,7 @@ export default function OverviewPage() {
         <SectionCard
           title="Recent platform activity"
           icon="activity"
-          action={<Link className="btn btn-sm" href="/superadmin/logs">Audit log</Link>}
+          action={<Link className="btn btn-sm" href="/super-admin/logs">Audit log</Link>}
         >
           {data.recent.logs.length === 0 ? (
             <p className="muted">No activity recorded yet.</p>

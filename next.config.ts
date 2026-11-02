@@ -10,6 +10,21 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   // No fingerprint header on every response.
   poweredByHeader: false,
+  // Keep the platform console on a clear, permanent URL while retaining the
+  // existing route implementation and backward compatibility.
+  async redirects() {
+    return [
+      { source: "/superadmin", destination: "/super-admin/dashboard", permanent: true },
+      { source: "/superadmin/:path*", destination: "/super-admin/:path*", permanent: true },
+    ];
+  },
+  async rewrites() {
+    return [
+      { source: "/super-admin/login", destination: "/superadmin/login" },
+      { source: "/super-admin/dashboard", destination: "/superadmin" },
+      { source: "/super-admin/:path*", destination: "/superadmin/:path*" },
+    ];
+  },
 };
 
 export default nextConfig;

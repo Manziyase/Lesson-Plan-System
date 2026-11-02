@@ -10,6 +10,6 @@ export const metadata = {
 
 export default async function SuperAdminLoginPage() {
   const admin = await getPlatformAdmin();
-  if (admin) redirect("/superadmin");
+  if (admin) redirect("/super-admin/dashboard");
   return <SuperAdminLogin />;
 }

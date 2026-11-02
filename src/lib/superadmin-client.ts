@@ -22,8 +22,8 @@ export async function saApi<T = unknown>(path: string, opts: ApiOptions = {}): P
   }
   if (!res.ok) {
     if (res.status === 401 && opts.redirectOn401 !== false) {
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/superadmin/login")) {
-        window.location.href = "/superadmin/login";
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/super-admin/login")) {
+        window.location.href = "/super-admin/login";
       }
     }
     throw new Error(data.error || `Request failed (${res.status}).`);
