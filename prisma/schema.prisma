@@ -62,6 +62,10 @@ model School {
   subscriptions       SchoolSubscription[]
   payments            PaymentRecord[]
   announcementTargets AnnouncementSchool[]
+  messages           Message[]
+  planComments       PlanComment[]
+  notifications      Notification[]
+  deletionRequest    SchoolDeletionRequest?
 }
 
 model Class {
@@ -143,12 +147,16 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @default(now()) @updatedAt
 
-  school   School    @relation(fields: [schoolId], references: [id])
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   plans    Plan[]
   sessions Session[]
 
   teachingAssignments TeachingAssignment[]
   recoveryTokens      RecoveryToken[]
+  sentMessages        Message[] @relation("MessageSender")
+  receivedMessages    Message[] @relation("MessageRecipient")
+  planComments        PlanComment[]
+  notifications       Notification[]
 
   @@index([schoolId])
   @@index([status])
@@ -164,7 +172,7 @@ model AcademicYear {
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  school School @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   plans  Plan[]
 
   @@index([schoolId])
@@ -186,11 +194,12 @@ model Plan {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  teacher User         @relation(fields: [teacherId], references: [id])
-  year    AcademicYear @relation(fields: [academicYearId], references: [id])
-  school  School       @relation(fields: [schoolId], references: [id])
+  teacher User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   rows    PlanRow[]
   lessons Lesson[]
+  comments PlanComment[]
 
   @@index([schoolId])
   @@index([teacherId])
@@ -242,6 +251,7 @@ model Lesson {
   createdAt      DateTime
   updatedAt      DateTime
   status         String   @default("published") // mirrors the owning plan's approval status
+  teachingStatus String   @default("planned") // planned | completed; only explicit authorized updates mark completion
 
   plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
@@ -465,4 +475,85 @@ model RecoveryToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+/// School-scoped direct message. threadId links replies into a conversation;
+/// recipient and sender are always school users and APIs enforce tenant scope.
+model Message {
+  id          String   @id
+  threadId    String
+  schoolId    String
+  senderId    String
+  recipientId String
+  subject     String  @default("")
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  school    School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sender    User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User   @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, threadId, createdAt])
+  @@index([recipientId, readAt])
+  @@index([senderId, createdAt])
+}
+
+/// Immutable discussion and review history attached to the owning plan.
+model PlanComment {
+  id        String   @id
+  planId    String
+  schoolId  String
+  authorId  String
+  parentId  String?
+  kind      String   @default("comment") // comment | feedback
+  body      String
+  createdAt DateTime @default(now())
+
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, planId, createdAt])
+  @@index([parentId])
+}
+
+/// In-app event notification for messages and lesson plan feedback/revisions.
+model Notification {
+  id        String   @id
+  schoolId  String
+  userId    String
+  kind      String
+  targetId  String
+  body      String   @default("")
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([schoolId, targetId])
+}
+
+/// Pending permanent deletion with a cooling-off period. AuditLog deliberately
+/// keeps a schoolId snapshot after this row and the school are removed.
+model SchoolDeletionRequest {
+  id                String   @id
+  schoolId          String   @unique
+  schoolName        String
+  requestedById     String
+  requestedByName   String
+  requestedByType   String
+  reason            String
+  confirmedById     String
+  confirmedByName   String
+  graceDays         Int      @default(30)
+  requestedAt       DateTime @default(now())
+  scheduledFor      DateTime
+  cancelledAt       DateTime?
+  executedAt        DateTime?
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  @@index([scheduledFor, cancelledAt, executedAt])
 }

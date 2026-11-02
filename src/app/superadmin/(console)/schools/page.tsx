@@ -243,6 +243,11 @@ export default function SchoolsPage() {
   const [statusTarget, setStatusTarget] = useState<{ id: string; name: string; next: string; pending?: boolean } | null>(null);
   const [statusReason, setStatusReason] = useState("");
   const [statusBusy, setStatusBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteName, setDeleteName] = useState("");
+  const [deleteScheduled, setDeleteScheduled] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -405,6 +410,28 @@ export default function SchoolsPage() {
     } finally {
       setStatusBusy(false);
     }
+  }
+
+  async function scheduleDeletion() {
+    if (!detailSchool) return;
+    setDeleteBusy(true);
+    try { const r = await saApi<{ request: { scheduledFor: string } }>(`/api/superadmin/schools/${detailSchool.id}/deletion`, { method: "POST", body: { schoolName: deleteName, reason: deleteReason } }); setDeleteScheduled(r.request.scheduledFor); toast("Deletion scheduled with a grace period.", "ok"); }
+    catch (e) { toast((e as Error).message, "err"); }
+    setDeleteBusy(false);
+  }
+  async function cancelDeletion() {
+    if (!detailSchool) return;
+    setDeleteBusy(true);
+    try { await saApi(`/api/superadmin/schools/${detailSchool.id}/deletion`, { method: "DELETE" }); setDeleteScheduled(null); toast("Pending deletion cancelled.", "ok"); }
+    catch (e) { toast((e as Error).message, "err"); }
+    setDeleteBusy(false);
+  }
+  async function executeDeletion() {
+    if (!detailSchool) return;
+    setDeleteBusy(true);
+    try { await saApi(`/api/superadmin/schools/${detailSchool.id}/deletion`, { method: "PUT", body: { schoolName: deleteName } }); toast("School permanently deleted.", "ok"); setDeleteOpen(false); setDetailId(""); await load(); }
+    catch (e) { toast((e as Error).message, "err"); }
+    setDeleteBusy(false);
   }
 
   const detailSchool = detail?.school;
@@ -627,6 +654,7 @@ export default function SchoolsPage() {
                   <button className="btn btn-sm" onClick={openEdit}>
                     <Icon name="pencil" size={14} /> Edit info
                   </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => { setDeleteName(""); setDeleteReason(""); setDeleteScheduled(null); setDeleteOpen(true); void saApi<{ request: { scheduledFor: string } | null }>(`/api/superadmin/schools/${detailSchool.id}/deletion`).then((d) => setDeleteScheduled(d.request?.scheduledFor ?? null)); }}><Icon name="trash" size={14} /> Delete School</button>
                   {detailSchool.status === "active" ? (
                     <>
                       <button
@@ -1059,6 +1087,7 @@ export default function SchoolsPage() {
           </div>
         </Modal>
       ) : null}
+      {deleteOpen && detailSchool ? <Modal title={`Delete ${detailSchool.name}`} onClose={() => setDeleteOpen(false)} maxWidth={560}><div className="stack"><p>This permanently removes this school's users, classes, plans, messages, comments, and associated database records. A configured grace period applies before final deletion. Retained backups are purged according to hosting retention policy.</p>{deleteScheduled ? <><p>Scheduled for {fmtDateTime(deleteScheduled)}. This school remains recoverable during the grace period.</p><label className="field-label">Enter {detailSchool.name} to execute after the grace period</label><input className="input" value={deleteName} onChange={(e) => setDeleteName(e.target.value)} /><div className="modal__actions"><button className="btn" onClick={() => void cancelDeletion()} disabled={deleteBusy}>Cancel pending deletion</button><button className="btn btn-danger" onClick={() => void executeDeletion()} disabled={deleteBusy || deleteName !== detailSchool.name}>Permanently delete</button></div></> : <><label className="field-label">Reason</label><textarea className="input" rows={3} value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} /><label className="field-label">Type {detailSchool.name} to schedule deletion</label><input className="input" value={deleteName} onChange={(e) => setDeleteName(e.target.value)} /><div className="modal__actions"><button className="btn" onClick={() => setDeleteOpen(false)}>Cancel</button><button className="btn btn-danger" disabled={deleteBusy || !deleteReason.trim() || deleteName !== detailSchool.name} onClick={() => void scheduleDeletion()}>Schedule deletion</button></div></>}</div></Modal> : null}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n-client";
 import { useMeta } from "@/components/Shell";
 import { Spinner, TermChip, Chip, SectionTitle } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { LessonDiscussion } from "@/components/LessonDiscussion";
 
 type Lesson = {
   id: string;
@@ -100,6 +101,8 @@ export default function LessonDetailPage({ params }: { params: Promise<{ id: str
         <div className="proc-block">{l.procedure}</div>
       </div>
 
+      <LessonDiscussion planId={l.planId} isAdmin={meta.me.role === "admin"} />
+
       {data.similar.length ? (
         <div className="card no-print" style={{ marginTop: 16 }}>
           <SectionTitle icon="search">{t("Similar lessons")} ({t("same class & area")})</SectionTitle>
@@ -124,3 +127,4 @@ export default function LessonDetailPage({ params }: { params: Promise<{ id: str
     </>
   );
 }
+

@@ -49,15 +49,16 @@ function ApprovalsInner() {
     if (isAdmin) load();
   }, [isAdmin, load]);
 
-  async function approve(id: string) {
+  async function approve(id: string, action: "approve" | "revision" = "approve") {
+    if (action === "revision" && !feedback.trim()) { toast(t("Add feedback explaining what needs revision."), "err"); return; }
     setApproving(id);
     try {
       await api(`/api/plans/${encodeURIComponent(id)}/approve`, {
         method: "POST",
-        body: { feedback: feedback },
+        body: { feedback: feedback, action },
       });
       setFeedback("");
-      toast(t("Plan approved — now in the Lesson Library."), "ok");
+      toast(action === "revision" ? t("Plan returned to the teacher for revision.") : t("Plan approved — now in the Lesson Library."), "ok");
       setPending((list) => (list ? list.filter((p) => p.id !== id) : list));
       router.refresh();
     } catch (e) {
@@ -132,11 +133,12 @@ function ApprovalsInner() {
                 <button className="btn btn-sm" onClick={() => setShowFeedback((v) => !v)}>
                   <Icon name="eye" size={14} /> <span>{t("View")}</span>
                 </button>
+                <button className="btn btn-sm" onClick={() => setShowFeedback((v) => !v)}>{t("Return for revision")}</button>
                 <button className="btn btn-sm btn-accent" disabled={approving === p.id} onClick={() => approve(p.id)}>
                   <Icon name="checkCircle" size={14} /> <span>{t("Approve")}</span>
                 </button>
               </div>
-              {showFeedback && p.feedback ? (
+              {showFeedback ? (
                 <div className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                     <strong>{t("Feedback on this plan")}</strong>
@@ -144,7 +146,10 @@ function ApprovalsInner() {
                       <Icon name="x" size={14} />
                     </button>
                   </div>
-                  <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: ".9rem" }}>{p.feedback}</p>
+                  {p.feedback ? <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: ".9rem" }}>{p.feedback}</p> : null}
+                  <label className="field-label">{t("Feedback / revision instructions")}</label>
+                  <textarea className="input" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder={t("Specific feedback (optional when approving)")} />
+                  <div className="row-actions"><button className="btn btn-sm" disabled={approving === p.id} onClick={() => approve(p.id, "revision")}>{t("Return for revision")}</button><button className="btn btn-sm btn-accent" disabled={approving === p.id} onClick={() => approve(p.id)}>{t("Approve with feedback")}</button></div>
                 </div>
               ) : null}
             </div>

@@ -92,6 +92,8 @@ const NAV_ICONS: Record<string, IconName> = {
   "/admin/teachers": "users",
   "/admin/settings": "settings",
   "/profile": "userCircle",
+  "/messages": "mail",
+  "/notifications": "bell",
 };
 
 /** Topbar page titles by route segment. */
@@ -107,6 +109,8 @@ function pageTitle(seg: string, fallback: string): string {
     "/admin/teachers": "Teachers",
     "/admin/settings": "School Settings",
     "/profile": "My Account",
+    "/messages": "Messages",
+    "/notifications": "Notifications",
   };
   return map[seg] ?? fallback;
 }
@@ -119,6 +123,8 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
   const [currentUser, setCurrentUser] = useState(meta.me);
   const [collapsed, setCollapsed] = useState(false); // desktop icon-only
   const [mobileOpen, setMobileOpen] = useState(false); // off-canvas on small screens
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("slp_sidebar") === "collapsed");
@@ -127,6 +133,17 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
   useEffect(() => {
     setMobileOpen(false); // close the drawer after navigation
   }, [pathname]);
+
+  useEffect(() => {
+    let active = true;
+    const loadUnread = () => {
+      api<{ unread: number }>("/api/messages").then((d) => { if (active) setUnreadMessages(d.unread); }).catch(() => {});
+      api<{ unread: number }>("/api/notifications").then((d) => { if (active) setUnreadNotifications(d.unread); }).catch(() => {});
+    };
+    loadUnread();
+    const timer = window.setInterval(loadUnread, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
 
   const activeYear = meta.years.find((y) => y.id === activeYearId) ?? meta.activeYear;
   const metaLive: Meta = { ...meta, activeYear: activeYear ?? null };
@@ -147,6 +164,8 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
           { href: "/admin/settings", label: t("School Settings") },
         ]
       : []),
+    { href: "/messages", label: t("Messages") },
+    { href: "/notifications", label: t("Notifications") },
     { href: "/profile", label: t("My Account") },
   ];
 
@@ -201,7 +220,7 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
           </div>
           <nav className="sidebar__nav" id="main-nav">
             {navItems.map((n) => (
-              <Link key={n.href} href={n.href} className={seg === n.href ? "active" : ""} title={collapsed ? n.label : undefined}>
+              <Link key={n.href} href={n.href} className={seg === n.href ? "active" : ""} title={n.label} aria-label={n.label}>
                 <span className="ico" aria-hidden="true">
                   <Icon name={NAV_ICONS[n.href] ?? "dashboard"} size={18} />
                 </span>
@@ -212,6 +231,8 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
                       {pending}
                     </span>
                   ) : null}
+                  {n.href === "/messages" && unreadMessages > 0 ? <span className="nav-badge" aria-label={t("{n} unread message(s)", { n: unreadMessages })}>{unreadMessages}</span> : null}
+                  {n.href === "/notifications" && unreadNotifications > 0 ? <span className="nav-badge" aria-label={t("{n} unread notification(s)", { n: unreadNotifications })}>{unreadNotifications}</span> : null}
                 </span>
               </Link>
             ))}
@@ -225,9 +246,9 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
               </div>
             </Link>
             <div className="sidebar__foot-row">
-              <button className="btn btn-sm sidebar__logout" onClick={onLogout}>
+              <button className="btn btn-sm sidebar__logout" onClick={onLogout} title={t("Log out")} aria-label={t("Log out")}>
                 <Icon name="logout" size={14} />
-                {t("Log out")}
+                <span className="sidebar__logout-label">{t("Log out")}</span>
               </button>
               <ThemeToggle />
             </div>

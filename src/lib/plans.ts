@@ -233,6 +233,8 @@ export async function rebuildLessons(planId: string): Promise<void> {
     include: { rows: { orderBy: { position: "asc" } } },
   });
   if (!plan) return;
+  const priorRows = await prisma.lesson.findMany({ where: { planId }, select: { id: true, teachingStatus: true } } as never) as unknown as { id: string; teachingStatus: string }[];
+  const priorStatuses = new Map(priorRows.map((l) => [l.id, l.teachingStatus]));
   await prisma.lesson.deleteMany({ where: { planId } });
   if (plan.rows.length) {
     await prisma.lesson.createMany({
@@ -257,6 +259,7 @@ export async function rebuildLessons(planId: string): Promise<void> {
         competence: r.competence,
         procedure: r.procedure,
         status: plan.status === "published" ? "published" : "pending",
+        teachingStatus: priorStatuses.get(r.id) ?? "planned",
         createdAt: plan.createdAt,
         updatedAt: new Date(),
       })),

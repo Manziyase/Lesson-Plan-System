@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api, fmtDateShort } from "@/lib/client";
 import { useI18n } from "@/lib/i18n-client";
 import { useMeta } from "@/components/Shell";
-import { Spinner, EmptyState, TermChip, Chip } from "@/components/ui";
+import { Spinner, EmptyState, TermChip, Chip, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
 type Lesson = {
@@ -22,6 +22,8 @@ type Lesson = {
   className: string;
   learningArea: string;
   unit: string;
+  subUnit: string;
+  teachingStatus: string;
   competence: string;
   procedure: string;
 };
@@ -34,11 +36,13 @@ type Unit = {
   classes: string[];
   teachers: string[];
   lastTaught: string;
+  subUnits: { title: string; count: number; completed: number }[];
 };
 
 function LibraryInner() {
   const { t, lang } = useI18n();
   const { meta } = useMeta();
+  const toast = useToast();
   const router = useRouter();
   const sp = useSearchParams();
   const locale = lang === "rw" ? "rw-RW" : lang === "fr" ? "fr-FR" : "en-GB";
@@ -51,12 +55,16 @@ function LibraryInner() {
     term: sp.get("term") || "",
     teacher: sp.get("teacher") || "",
     unit: sp.get("unit") || "",
+    subUnit: sp.get("subUnit") || "",
     mine: sp.get("mine") ?? "",
   });
   const view = sp.get("view") || "lessons";
   const [lessons, setLessons] = useState<Lesson[] | null>(null);
   const [units, setUnits] = useState<Unit[] | null>(null);
   const [total, setTotal] = useState(0);
+  const [subUnits, setSubUnits] = useState<string[]>([]);
+  const [unitOptions, setUnitOptions] = useState<string[]>([]);
+  const [progressById, setProgressById] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     const qs = new URLSearchParams();
@@ -71,9 +79,11 @@ function LibraryInner() {
         const res = await api<{ units: Unit[] }>("/api/lessons/units?" + qs.toString());
         setUnits(res.units);
       } else {
-        const res = await api<{ lessons: Lesson[]; total: number }>("/api/lessons?" + qs.toString());
+        const res = await api<{ lessons: Lesson[]; total: number; subUnits: string[]; unitOptions: string[] }>("/api/lessons?" + qs.toString());
         setLessons(res.lessons);
         setTotal(res.total);
+        setSubUnits(res.subUnits ?? []);
+        setUnitOptions(res.unitOptions ?? []);
       }
     } catch {
       setLessons([]);
@@ -120,6 +130,20 @@ function LibraryInner() {
         <div className="grow">
           <label className="field-label">{t("Search")}</label>
           <input className="input" value={filters.q} placeholder={t("unit, competence, procedure…")} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
+        </div>
+        <div>
+          <label className="field-label">{t("Unit")}</label>
+          <select className="input" value={filters.unit} onChange={(e) => setFilters({ ...filters, unit: e.target.value, subUnit: "" })}>
+            <option value="">{t("All")}</option>
+            {unitOptions.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="field-label">{t("Sub-unit")}</label>
+          <select className="input" value={filters.subUnit} onChange={(e) => setFilters({ ...filters, subUnit: e.target.value })}>
+            <option value="">{t("All")}</option>
+            {subUnits.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
         <div>
           <label className="field-label">{t("Class")}</label>
@@ -182,6 +206,7 @@ function LibraryInner() {
                   {u.count} {t("lesson(s)")} · {t("last taught")} {fmtDateShort(u.lastTaught, locale)}
                   {u.teachers.length ? ` · ${u.teachers.length === 1 ? u.teachers[0] : t("{n} teachers", { n: u.teachers.length })}` : ""}
                 </div>
+                <div className="unit-progress-list">{u.subUnits.map((s) => <div key={s.title}><span>{s.title}</span><span className="muted">{s.completed}/{s.count} {t("completed")}</span></div>)}</div>
                 <div style={{ marginTop: "auto", paddingTop: 8 }}>
                   <Link className="btn btn-sm" href={`/library?view=lessons&unit=${encodeURIComponent(u.unit)}`} title={t("View lessons")} aria-label={t("View lessons")}>
                     <Icon name="eye" size={14} />
@@ -217,6 +242,8 @@ function LibraryInner() {
                     ) : null}
                   </div>
                   <div className="unit-name">{l.unit || l.competence || t("Lesson")}</div>
+                  {l.subUnit ? <div className="lesson-subunit">{l.subUnit}</div> : null}
+                  {(isAdmin || mine) ? <label className="lesson-progress">{t("Lesson status")}<select className="input" value={progressById[l.id] ?? l.teachingStatus ?? "planned"} onChange={async (e) => { const teachingStatus = e.target.value; setProgressById((p) => ({ ...p, [l.id]: teachingStatus })); try { await api(`/api/lessons/${encodeURIComponent(l.id)}/progress`, { method: "PATCH", body: { teachingStatus } }); } catch (error) { setProgressById((p) => ({ ...p, [l.id]: l.teachingStatus })); toast((error as Error).message, "err"); } }}><option value="planned">{t("Planned")}</option><option value="completed">{t("Completed")}</option></select></label> : <Chip text={l.teachingStatus === "completed" ? t("Completed") : t("Planned")} kind={l.teachingStatus === "completed" ? "ok" : "gray"} />}
                   <div className="proc">{l.procedure}</div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: 8 }}>
                     <span className="muted" style={{ fontSize: ".8rem" }}>{mine ? t("You") : t("by {name}", { name: l.teacherName || t("Unknown") })}</span>

@@ -2,7 +2,7 @@
 
 /* Admin view: School Settings — choose which levels and streams the school offers. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/client";
 import { useI18n } from "@/lib/i18n-client";
 import { useMeta } from "@/components/Shell";
@@ -228,6 +228,7 @@ export default function SchoolSettingsPage() {
       </div>
 
       <SchoolDetailsCard />
+      <SchoolDeletionCard />
 
       <div className="card">
         <SectionTitle icon="graduation">{t("Classes & streams")}</SectionTitle>
@@ -282,4 +283,18 @@ export default function SchoolSettingsPage() {
       </div>
     </>
   );
+}
+
+function SchoolDeletionCard() {
+  const { meta } = useMeta();
+  const toast = useToast();
+  const [request, setRequest] = useState<{ scheduledFor: string; graceDays: number } | null>(null);
+  const [reason, setReason] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api<{ request: typeof request }>("/api/school/deletion").then((r) => setRequest(r.request)).catch(() => {}); }, []);
+  async function submit(e: React.FormEvent) { e.preventDefault(); setBusy(true); try { const r = await api<{ request: typeof request }>("/api/school/deletion", { method: "POST", body: { reason, schoolName, password } }); setRequest(r.request); setReason(""); setPassword(""); toast("Permanent deletion scheduled. You can cancel during the grace period.", "ok"); } catch (err) { toast((err as Error).message, "err"); } setBusy(false); }
+  async function cancel() { setBusy(true); try { await api("/api/school/deletion", { method: "DELETE" }); setRequest(null); toast("Deletion request cancelled.", "ok"); } catch (err) { toast((err as Error).message, "err"); } setBusy(false); }
+  return <section className="card danger-card"><SectionTitle icon="trash">Permanent school deletion</SectionTitle><p>This permanently removes the school workspace and its teachers, classes, subjects, plans, messages, comments, and files attached in LessonHub. A {request?.graceDays ?? 30}-day grace period applies. Platform backups follow the hosting provider's retention and purge schedule.</p>{request ? <><p><strong>Deletion scheduled:</strong> {new Date(request.scheduledFor).toLocaleString()}</p><button className="btn" disabled={busy} onClick={() => void cancel()}>Cancel pending deletion</button></> : <form onSubmit={submit}><label className="field-label">Reason for deletion</label><textarea className="input" required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /><label className="field-label">Type school name: {meta.school?.name}</label><input className="input" required value={schoolName} onChange={(e) => setSchoolName(e.target.value)} /><label className="field-label">Re-enter your password</label><input className="input" required type="password" value={password} onChange={(e) => setPassword(e.target.value)} /><button className="btn btn-danger" disabled={busy}>Request permanent deletion</button></form>}</section>;
 }

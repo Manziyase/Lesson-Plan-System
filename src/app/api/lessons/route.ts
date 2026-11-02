@@ -24,6 +24,7 @@ export async function GET(req: Request) {
   const term = parseInt(q.get("term") ?? "", 10);
   const text = str(q.get("q")).toLowerCase();
   const unit = str(q.get("unit"));
+  const subUnit = str(q.get("subUnit"));
 
   const where: Prisma.LessonWhereInput = { schoolId: user.schoolId };
   if (mine) {
@@ -55,17 +56,26 @@ export async function GET(req: Request) {
     where.OR = [{ unit: { contains: unit } }];
     void slug;
   }
+  if (subUnit) where.subUnit = subUnit;
 
   let list = await prisma.lesson.findMany({ where, orderBy: [{ date: "desc" }, { id: "asc" }] });
   if (text) {
     const terms = text.split(/\s+/).filter(Boolean);
     list = list.filter((l) => {
-      const hay = `${l.className} ${l.learningArea} ${l.unit} ${l.competence} ${l.procedure}`.toLowerCase();
+      const hay = `${l.className} ${l.learningArea} ${l.unit} ${l.subUnit} ${l.competence} ${l.procedure}`.toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
   }
   if (unit) list = list.filter((l) => l.unit === unit);
 
   const limit = Math.min(parseInt(q.get("limit") ?? "200", 10) || 200, 500);
-  return Response.json({ lessons: list.slice(0, limit), total: list.length });
+  const subUnits = await prisma.lesson.findMany({
+    where: { schoolId: user.schoolId, ...(year ? { academicYearId: year } : {}), ...(mine ? { teacherId: user.id } : { status: "published" }), ...(unit ? { unit } : {}) },
+    select: { subUnit: true }, distinct: ["subUnit"], orderBy: { subUnit: "asc" },
+  });
+  const unitOptions = await prisma.lesson.findMany({
+    where: { schoolId: user.schoolId, ...(year ? { academicYearId: year } : {}), ...(mine ? { teacherId: user.id } : { status: "published" }) },
+    select: { unit: true }, distinct: ["unit"], orderBy: { unit: "asc" },
+  });
+  return Response.json({ lessons: list.slice(0, limit), total: list.length, subUnits: subUnits.map((x) => x.subUnit).filter(Boolean), unitOptions: unitOptions.map((x) => x.unit).filter(Boolean) });
 }

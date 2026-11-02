@@ -40,15 +40,20 @@ export async function GET(req: Request) {
     take: 4000,
   });
 
-  const map = new Map<string, { unit: string; slug: string; count: number; areas: Set<string>; classes: Set<string>; teachers: Set<string>; lastTaught: string }>();
+  const map = new Map<string, { unit: string; slug: string; count: number; areas: Set<string>; classes: Set<string>; teachers: Set<string>; lastTaught: string; subUnits: Map<string, { count: number; completed: number }> }>();
   for (const l of list) {
     const key = slugify(l.unit);
     if (!key) continue;
     if (!map.has(key)) {
-      map.set(key, { unit: l.unit, slug: key, count: 0, areas: new Set(), classes: new Set(), teachers: new Set(), lastTaught: l.date });
+      map.set(key, { unit: l.unit, slug: key, count: 0, areas: new Set(), classes: new Set(), teachers: new Set(), lastTaught: l.date, subUnits: new Map() });
     }
     const e = map.get(key)!;
     e.count += 1;
+    const sub = l.subUnit || "(No sub-unit specified)";
+    const progress = e.subUnits.get(sub) ?? { count: 0, completed: 0 };
+    progress.count++;
+    if ((l as unknown as { teachingStatus: string }).teachingStatus === "completed") progress.completed++;
+    e.subUnits.set(sub, progress);
     e.areas.add(l.learningArea);
     e.classes.add(l.className);
     if (l.teacherName) e.teachers.add(l.teacherName);
@@ -60,6 +65,7 @@ export async function GET(req: Request) {
       areas: Array.from(u.areas),
       classes: Array.from(u.classes),
       teachers: Array.from(u.teachers).sort(),
+      subUnits: Array.from(u.subUnits, ([title, progress]) => ({ title, ...progress })),
     }))
     .sort((a, b) => (a.lastTaught < b.lastTaught ? 1 : -1));
 

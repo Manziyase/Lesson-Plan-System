@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n-client";
 import { useMeta } from "@/components/Shell";
 import { Spinner, TermChip, Chip, SectionTitle, setPrintHeader, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { LessonDiscussion } from "@/components/LessonDiscussion";
 
 type Row = { time: string; className: string; learningArea: string; competence: string; procedure: string };
 type Plan = {
@@ -141,6 +142,8 @@ export default function PlanDetailPage({ params }: { params: Promise<{ id: strin
           </tbody>
         </table>
       </div>
+
+      <LessonDiscussion planId={plan.id} isAdmin={isAdmin} />
 
       {data.similar.length ? (
         <div className="card no-print" style={{ marginTop: 16 }}>
