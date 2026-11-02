@@ -1,4 +1,4 @@
-# Ireme — Next.js (v2)
+# LessonHub — Next.js (v2)
 
 The Rwanda School Lesson Planning & Knowledge Management System, rebuilt as a
 production-ready **Next.js full-stack application** while preserving every
