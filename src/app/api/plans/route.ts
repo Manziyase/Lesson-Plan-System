@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser, unauthorized } from "@/lib/session";
 import { sanitizePlanInput } from "@/lib/plan-input";
+import { validatePlanAssignments } from "@/lib/assignments";
 import { rebuildLessons, planSummary } from "@/lib/plans";
+import { getPlatformSettings } from "@/lib/platform";
 import { str, isValidDate } from "@/lib/util";
 import { Prisma } from "@prisma/client";
 
@@ -79,6 +81,10 @@ const TERMS_OK = [1, 2, 3];
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
+  const settings = await getPlatformSettings();
+  if (!settings.features.planner) {
+    return Response.json({ error: "The lesson planner is not available on this platform right now." }, { status: 403 });
+  }
   let body: Record<string, unknown> = {};
   try {
     body = await req.json();
@@ -88,6 +94,8 @@ export async function POST(req: Request) {
   const schoolClasses = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
   const { errors, date, term, yearId, rows } = sanitizePlanInput(body, schoolClasses);
   if (errors.length) return Response.json({ error: errors[0], errors }, { status: 400 });
+  const assignmentError = await validatePlanAssignments(user, rows);
+  if (assignmentError) return Response.json({ error: assignmentError }, { status: 400 });
   const year = await prisma.academicYear.findFirst({ where: { id: yearId, schoolId: user.schoolId } });
   if (!year) return Response.json({ error: "Select a valid academic year." }, { status: 400 });
   if (year.startDate && date < year.startDate) {
@@ -113,7 +121,23 @@ export async function POST(req: Request) {
       date,
       status: approved ? "published" : "pending",
       approvedByName: approved ? user.name : "",
-      rows: { create: rows.map((r, i) => ({ ...r, id: `${id}_r${i + 1}`, position: i + 1 })) },
+      rows: { create: rows.map((r, i) => ({
+        // PlanRow fields only — these never belong on the Plan object itself,
+        // so they are picked out explicitly instead of spread in ("subUnit",
+        // "id" and "position" were what the server rejected).
+        id: `${id}_r${i + 1}`,
+        position: i + 1,
+        time: r.time,
+        classId: r.classId,
+        className: r.className,
+        levelId: r.levelId,
+        stream: r.stream ?? null,
+        learningAreaId: r.learningAreaId,
+        learningArea: r.learningArea,
+        subUnit: r.subUnit,
+        competence: r.competence,
+        procedure: r.procedure,
+      })) },
     },
     include: { rows: { orderBy: { position: "asc" } } },
   });

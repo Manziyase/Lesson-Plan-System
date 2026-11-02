@@ -4,6 +4,8 @@ import { createSession, SESSION_COOKIE, SESSION_TTL_SECONDS, publicUser } from "
 import { str, EMAIL_RE } from "@/lib/util";
 import { isSupportedLang } from "@/lib/i18n";
 import { throttleCheck, throttleRecord } from "@/lib/throttle";
+import { getPlatformSettings, assignDefaultSubscription } from "@/lib/platform";
+import { audit, requestMeta } from "@/lib/audit";
 import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,14 @@ const DEFAULT_AREAS = [
  */
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const reqMeta = requestMeta(req);
+  const platformSettings = await getPlatformSettings();
+  if (!platformSettings.registration.enabled) {
+    return Response.json(
+      { error: "New school registration is temporarily closed. Please contact LessonHub support." },
+      { status: 403 }
+    );
+  }
   if (!throttleCheck(ip)) {
     return Response.json({ error: "Too many attempts. Please wait a few minutes and try again." }, { status: 429 });
   }
@@ -80,6 +90,13 @@ export async function POST(req: Request) {
   await prisma.learningArea.createMany({
     data: DEFAULT_AREAS.map((n) => ({ schoolId: school.id, name: n, id: "a-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 14) })),
   });
+  await prisma.subject.createMany({
+    data: DEFAULT_AREAS.map((n) => ({
+      schoolId: school.id,
+      name: n,
+      id: "s-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 14) + "-" + crypto.randomUUID().slice(0, 4),
+    })),
+  });
   const { salt, hash } = hashPassword(password);
   const user = await prisma.user.create({
     data: {
@@ -111,6 +128,24 @@ export async function POST(req: Request) {
   await prisma.user.update({ where: { id: user.id }, data: { activeYearId: year.id } });
 
   throttleRecord(ip, true);
+
+  await assignDefaultSubscription(school.id, { name: user.name, email: user.email });
+
+  await audit({
+    actorType: "school_user",
+    actorId: user.id,
+    actorName: user.name,
+    actorEmail: user.email,
+    action: "school.registered",
+    targetType: "school",
+    targetId: school.id,
+    schoolId: school.id,
+    summary: `Initial school registered: ${school.name || "(unnamed)"}`,
+    ip: reqMeta.ip,
+    userAgent: reqMeta.userAgent,
+    metadata: { source: "first-run-signup" },
+  });
+
   const token = await createSession(user.id);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {

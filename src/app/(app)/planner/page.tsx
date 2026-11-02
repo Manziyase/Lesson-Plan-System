@@ -21,6 +21,7 @@ type Row = {
   className: string;
   learningAreaId: string;
   learningArea: string;
+  subUnit: string;
   competence: string;
   procedure: string;
 };
@@ -49,7 +50,7 @@ type LessonHit = {
 };
 
 function blankRow(): Row {
-  return { time: "", classId: "", className: "", learningAreaId: "", learningArea: "", competence: "", procedure: "" };
+  return { time: "", classId: "", className: "", learningAreaId: "", learningArea: "", subUnit: "", competence: "", procedure: "" };
 }
 
 function PlannerInner() {
@@ -61,6 +62,41 @@ function PlannerInner() {
   const locale = lang === "rw" ? "rw-RW" : lang === "fr" ? "fr-FR" : "en-GB";
   const isAdmin = meta.me.role === "admin";
   const year = meta.activeYear;
+
+  /*
+   * Assignment-driven choices:
+   *  - admins can plan for any class and any school subject;
+   *  - teachers only see the classes they are assigned to, and for each class
+   *    only the subjects they teach in that class.
+   */
+  const myAssignments = meta.me.assignments;
+  const allowedClasses = useMemo(() => {
+    if (isAdmin) return meta.classes;
+    const ids = new Set(myAssignments.map((a) => a.classId));
+    return meta.classes.filter((c) => ids.has(c.id));
+  }, [isAdmin, meta.classes, myAssignments]);
+
+  const subjectsByClass = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }[]>();
+    if (isAdmin) {
+      for (const cls of meta.classes) map.set(cls.id, meta.subjects);
+      return map;
+    }
+    for (const a of myAssignments) {
+      const list = map.get(a.classId) ?? [];
+      const subject = meta.subjects.find((s) => s.id === a.subjectId);
+      if (subject && !list.some((s) => s.id === subject.id)) list.push(subject);
+      map.set(a.classId, list);
+    }
+    for (const [classId, list] of map) {
+      map.set(classId, list.slice().sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    return map;
+  }, [isAdmin, meta.classes, meta.subjects, myAssignments]);
+
+  function subjectOptionsFor(classId: string) {
+    return subjectsByClass.get(classId) ?? [];
+  }
 
   const editParam = sp.get("edit");
   const fromParam = sp.get("from");
@@ -222,6 +258,11 @@ function PlannerInner() {
       </div>
 
       {error ? <div className="form-error">{error}</div> : null}
+      {!isAdmin && allowedClasses.length === 0 ? (
+        <div className="form-error">
+          {t("You have no classes assigned yet. Ask your school administrator to assign your classes and subjects before planning.")}
+        </div>
+      ) : null}
 
       <div className="card no-print" style={{ marginBottom: 14 }}>
         <div className="planner-meta">
@@ -246,9 +287,6 @@ function PlannerInner() {
         </div>
       </div>
 
-      <datalist id="school-classes-list">
-        {meta.classes.map((c) => <option key={c.id} value={c.name} />)}
-      </datalist>
       <div className="planner-table-wrap">
         <table className="planner">
           <thead>
@@ -256,6 +294,7 @@ function PlannerInner() {
               <th className="col-time">{t("Time")}</th>
               <th>{t("Class")}</th>
               <th className="col-area">{t("Learning Area")}</th>
+              <th>{t("Sub Unit")}</th>
               <th>{t("Learning Competence / Unit")}</th>
               <th>{t("Lesson Procedure")}</th>
               <th className="no-print" style={{ width: 46 }}></th>
@@ -271,18 +310,69 @@ function PlannerInner() {
                   <input className="input" style={{ minWidth: 96 }} value={r.time} placeholder="08:00-08:40" onChange={(e) => setRow(i, { time: e.target.value })} />
                 </td>
                 <td>
-                  <input className="input" style={{ minWidth: 110 }} list="school-classes-list" placeholder="e.g. P5A" value={r.className} onChange={(e) => setRow(i, { className: e.target.value, classId: "" })} />
+                  {(() => {
+                    const options = allowedClasses.slice();
+                    // Keep a historical/free-text class visible when editing an
+                    // older plan so the value is never silently lost.
+                    const legacyValue = !r.classId && r.className ? `legacy:${r.className}` : "";
+                    const byName = options.find((c) => c.name === r.className);
+                    if (r.className && !options.some((c) => c.id === r.classId) && !byName) {
+                      options.push({ id: r.classId || legacyValue, name: r.className, level: null, stream: null });
+                    }
+                    return (
+                      <select
+                        className="input"
+                        style={{ minWidth: 110 }}
+                        value={r.classId || byName?.id || legacyValue}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.startsWith("legacy:")) return;
+                          const cls = options.find((c) => c.id === value);
+                          // Changing class invalidates the subject: a teacher
+                          // may teach different subjects in different classes.
+                          setRow(i, {
+                            classId: cls ? cls.id : "",
+                            className: cls ? cls.name : "",
+                            learningAreaId: "",
+                            learningArea: "",
+                          });
+                        }}
+                      >
+                        <option value="">{t("— class —")}</option>
+                        {options.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </td>
                 <td>
-                  <select className="input" style={{ minWidth: 150 }} value={r.learningAreaId} onChange={(e) => {
-                    const a = meta.learningAreas.find((x) => x.id === e.target.value);
-                    setRow(i, { learningAreaId: e.target.value, learningArea: a?.name ?? "" });
-                  }}>
-                    <option value="">— area —</option>
-                    {meta.learningAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
+                  {(() => {
+                    const options = subjectOptionsFor(r.classId);
+                    return (
+                      <select
+                        className="input"
+                        style={{ minWidth: 150 }}
+                        value={r.learningAreaId}
+                        disabled={!r.classId}
+                        onChange={(e) => {
+                          const a = options.find((x) => x.id === e.target.value);
+                          setRow(i, { learningAreaId: e.target.value, learningArea: a?.name ?? "" });
+                        }}
+                      >
+                        <option value="">{r.classId ? t("— subject —") : t("Choose a class first")}</option>
+                        {options.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        {r.learningAreaId && !options.some((a) => a.id === r.learningAreaId) ? (
+                          <option value={r.learningAreaId}>{r.learningArea || r.learningAreaId}</option>
+                        ) : null}
+                      </select>
+                    );
+                  })()}
                 </td>
-                <td><textarea value={r.competence} placeholder={"Unit X: …\nSubUnit X.Y: …"} onChange={(e) => setRow(i, { competence: e.target.value })} /></td>
+                <td>
+                  <input className="input" value={r.subUnit} placeholder="Sub-unit e.g. 3.1 Fractions" onChange={(e) => setRow(i, { subUnit: e.target.value })} />
+                </td>
+                <td><textarea value={r.competence} placeholder="Unit X: …\nSubUnit X.Y: …" onChange={(e) => setRow(i, { competence: e.target.value })} /></td>
                 <td><textarea value={r.procedure} placeholder={"Introduction…\nDevelopment…\nAssessment…"} onChange={(e) => setRow(i, { procedure: e.target.value })} /></td>
                 <td className="no-print" style={{ textAlign: "center", verticalAlign: "middle" }}>
                   <button className="btn btn-sm btn-danger" title={t("Remove row")} aria-label={t("Remove row")} onClick={() => removeRow(i)}>
@@ -379,7 +469,7 @@ function ReusePanel({ meta, onPick }: { meta: ReturnType<typeof useMeta>["meta"]
           <label className="field-label">{t("Learning area")}</label>
           <select className="input" value={area} onChange={(e) => setArea(e.target.value)}>
             <option value="">{t("All areas")}</option>
-            {meta.learningAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {meta.subjects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
         <button className="btn btn-primary" onClick={search} disabled={busy}>
@@ -403,7 +493,7 @@ function ReusePanel({ meta, onPick }: { meta: ReturnType<typeof useMeta>["meta"]
               <div className="proc">{l.procedure}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
                 <span className="muted" style={{ fontSize: ".8rem" }}>by {l.teacherName}</span>
-                <button className="btn btn-sm btn-primary" onClick={() => onPick(l)}>{t("Use this lesson")}</button>
+                <button className="btn btn-sm btn-primary" onClick={() => onPick(l)} title={t("Use this lesson")} aria-label={t("Use this lesson")}><Icon name="check" size={14} /></button>
               </div>
             </div>
           ))}

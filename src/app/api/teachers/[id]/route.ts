@@ -1,12 +1,29 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser, unauthorized, forbidden } from "@/lib/session";
 import { str, EMAIL_RE, parseStringArray } from "@/lib/util";
+import {
+  AssignmentError,
+  parseAssignmentInput,
+  syncTeacherAssignments,
+  type AssignmentInput,
+} from "@/lib/assignments";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-function teacherJson(u: { id: string; name: string; email: string; role: string; schoolId: string; subjects: string; classes: string; language: string; mustChangePassword: boolean; createdAt: Date }) {
+function teacherJson(u: {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  schoolId: string;
+  subjects: string;
+  classes: string;
+  language: string;
+  mustChangePassword: boolean;
+  createdAt: Date;
+}, assignments: { classId: string; className: string; subjectId: string; subjectName: string }[]) {
   return {
     id: u.id,
     name: u.name,
@@ -15,10 +32,36 @@ function teacherJson(u: { id: string; name: string; email: string; role: string;
     schoolId: u.schoolId,
     subjects: parseStringArray(u.subjects),
     classes: parseStringArray(u.classes),
+    assignments,
     language: u.language,
     mustChangePassword: u.mustChangePassword,
     createdAt: u.createdAt,
   };
+}
+
+async function legacyInputsFromNames(
+  schoolId: string,
+  subjects: unknown,
+  classes: unknown
+): Promise<AssignmentInput[]> {
+  if (!Array.isArray(subjects) || !Array.isArray(classes)) return [];
+  const subjectNames = Array.from(new Set(subjects.map((s) => str(s)).filter(Boolean)));
+  const classNames = Array.from(new Set(classes.map((c) => str(c)).filter(Boolean)));
+  if (!subjectNames.length || !classNames.length) return [];
+  const [subjectRows, classRows] = await Promise.all([
+    prisma.subject.findMany({ where: { schoolId, name: { in: subjectNames } } }),
+    prisma.class.findMany({ where: { schoolId, name: { in: classNames } } }),
+  ]);
+  const subjectByName = new Map(subjectRows.map((s) => [s.name.toLowerCase(), s]));
+  const classByName = new Map(classRows.map((c) => [c.name.toLowerCase(), c]));
+  return classNames.flatMap((name) => {
+    const cls = classByName.get(name.toLowerCase());
+    if (!cls) return [];
+    const subjectIds = subjectNames
+      .map((n) => subjectByName.get(n.toLowerCase())?.id)
+      .filter((id): id is string => Boolean(id));
+    return subjectIds.length ? [{ classId: cls.id, subjectIds }] : [];
+  });
 }
 
 export async function PUT(req: Request, { params }: Params) {
@@ -53,14 +96,39 @@ export async function PUT(req: Request, { params }: Params) {
     }
     data.role = body.role;
   }
-  if (Array.isArray(body.subjects)) {
-    data.subjects = JSON.stringify((body.subjects as unknown[]).map((s) => str(s)).filter(Boolean).slice(0, 12));
+
+  const parsed = parseAssignmentInput(body.assignments);
+  let entries: AssignmentInput[] | null = parsed;
+  if (entries === null && (Array.isArray(body.subjects) || Array.isArray(body.classes))) {
+    entries = await legacyInputsFromNames(user.schoolId, body.subjects, body.classes);
   }
-  if (Array.isArray(body.classes)) {
-    data.classes = JSON.stringify((body.classes as unknown[]).map((s) => str(s)).filter(Boolean).slice(0, 12));
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id: target.id }, data });
+      const assignments = entries
+        ? await syncTeacherAssignments(tx, { schoolId: user.schoolId, teacherId: target.id, entries })
+        : (
+            await tx.teachingAssignment.findMany({
+              where: { schoolId: user.schoolId, teacherId: target.id },
+              include: { class: true, subject: true },
+              orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }],
+            })
+          ).map((a) => ({
+            classId: a.classId,
+            className: a.class.name,
+            subjectId: a.subjectId,
+            subjectName: a.subject.name,
+          }));
+      return { updated, assignments };
+    }, { maxWait: 10_000, timeout: 20_000 });
+    return Response.json({ teacher: teacherJson(result.updated, result.assignments) });
+  } catch (e) {
+    if (e instanceof AssignmentError) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
   }
-  const updated = await prisma.user.update({ where: { id: target.id }, data });
-  return Response.json({ teacher: teacherJson(updated) });
 }
 
 export async function DELETE(req: Request, { params }: Params) {

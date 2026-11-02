@@ -69,11 +69,11 @@ export default function LessonDetailPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="actions">
           {canEdit ? (
-            <Link className="btn btn-primary" href={`/planner?edit=${l.planId}`}><Icon name="pencil" size={15} /> {t("Edit")}</Link>
+            <Link className="btn btn-primary" href={`/planner?edit=${l.planId}`} title={t("Edit")} aria-label={t("Edit")}><Icon name="pencil" size={15} /></Link>
           ) : null}
-          <Link className="btn" href={`/planner?from=${l.planId}`}><Icon name="refresh" size={15} /> {t("Reuse a past lesson")}</Link>
-          <Link className="btn" href={`/plans/${l.planId}`}><Icon name="eye" size={15} /> {t("View")}</Link>
-          <Link className="btn" href="/library"><Icon name="arrowLeft" size={15} /> {t("Lesson Library")}</Link>
+          <Link className="btn" href={`/planner?from=${l.planId}`} title={t("Reuse a past lesson")} aria-label={t("Reuse a past lesson")}><Icon name="refresh" size={15} /></Link>
+          <Link className="btn" href={`/plans/${l.planId}`} title={t("View")} aria-label={t("View")}><Icon name="eye" size={15} /></Link>
+          <Link className="btn" href="/library" title={t("Lesson Library")} aria-label={t("Lesson Library")}><Icon name="arrowLeft" size={15} /></Link>
         </div>
       </div>
       {!canEdit ? (

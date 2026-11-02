@@ -131,7 +131,7 @@ function PlansInner() {
           <label className="field-label">{t("Learning area")}</label>
           <select className="input" value={filters.area} onChange={(e) => setFilters({ ...filters, area: e.target.value })}>
             <option value="">{t("All")}</option>
-            {meta.learningAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {meta.subjects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
         <div>
@@ -228,13 +228,13 @@ function PlansInner() {
                   </div>
                 </div>
                 <div className="row-actions no-print">
-                  <Link className="btn btn-sm" href={`/plans/${p.id}`}><Icon name="eye" size={14} /> {t("View")}</Link>
+                  <Link className="btn btn-sm" href={`/plans/${p.id}`} title={t("View")} aria-label={t("View")}><Icon name="eye" size={14} /></Link>
                   {isAdmin && p.status === "pending" ? (
-                    <button className="btn btn-sm btn-accent" onClick={() => approve(p.id)}><Icon name="checkCircle" size={14} /> {t("Approve")}</button>
+                    <button className="btn btn-sm btn-accent" onClick={() => approve(p.id)} title={t("Approve")} aria-label={t("Approve")}><Icon name="checkCircle" size={14} /></button>
                   ) : null}
-                  {canEdit ? <Link className="btn btn-sm btn-primary" href={`/planner?edit=${p.id}`}><Icon name="pencil" size={14} /> {t("Edit")}</Link> : null}
-                  <Link className="btn btn-sm" href={`/planner?from=${p.id}`}><Icon name="copy" size={14} /> {t("Duplicate")}</Link>
-                  {canEdit ? <button className="btn btn-sm btn-danger" onClick={() => del(p.id)}><Icon name="trash" size={14} /> {t("Delete")}</button> : null}
+                  {canEdit ? <Link className="btn btn-sm btn-primary" href={`/planner?edit=${p.id}`} title={t("Edit")} aria-label={t("Edit")}><Icon name="pencil" size={14} /></Link> : null}
+                  <Link className="btn btn-sm" href={`/planner?from=${p.id}`} title={t("Duplicate")} aria-label={t("Duplicate")}><Icon name="copy" size={14} /></Link>
+                  {canEdit ? <button className="btn btn-sm btn-danger" onClick={() => del(p.id)} title={t("Delete")} aria-label={t("Delete")}><Icon name="trash" size={14} /></button> : null}
                 </div>
               </div>
             );

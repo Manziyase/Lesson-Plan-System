@@ -132,7 +132,7 @@ function LibraryInner() {
           <label className="field-label">{t("Learning area")}</label>
           <select className="input" value={filters.area} onChange={(e) => setFilters({ ...filters, area: e.target.value })}>
             <option value="">{t("All")}</option>
-            {meta.learningAreas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {meta.subjects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
         <div>
@@ -183,8 +183,8 @@ function LibraryInner() {
                   {u.teachers.length ? ` · ${u.teachers.length === 1 ? u.teachers[0] : t("{n} teachers", { n: u.teachers.length })}` : ""}
                 </div>
                 <div style={{ marginTop: "auto", paddingTop: 8 }}>
-                  <Link className="btn btn-sm" href={`/library?view=lessons&unit=${encodeURIComponent(u.unit)}`}>
-                    <Icon name="eye" size={14} /> {t("View lessons")}
+                  <Link className="btn btn-sm" href={`/library?view=lessons&unit=${encodeURIComponent(u.unit)}`} title={t("View lessons")} aria-label={t("View lessons")}>
+                    <Icon name="eye" size={14} />
                   </Link>
                 </div>
               </div>
@@ -221,9 +221,9 @@ function LibraryInner() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: 8 }}>
                     <span className="muted" style={{ fontSize: ".8rem" }}>{mine ? t("You") : t("by {name}", { name: l.teacherName || t("Unknown") })}</span>
                     <span style={{ display: "flex", gap: 6 }}>
-                      <Link className="btn btn-sm" href={`/lessons/${l.id}`}><Icon name="eye" size={14} /> {t("Open")}</Link>
+                      <Link className="btn btn-sm" href={`/lessons/${l.id}`} title={t("View")} aria-label={t("View")}><Icon name="eye" size={14} /></Link>
                       {isAdmin || mine ? (
-                        <Link className="btn btn-sm btn-primary" href={`/planner?edit=${l.planId}`}><Icon name="pencil" size={14} /> {t("Edit")}</Link>
+                        <Link className="btn btn-sm btn-primary" href={`/planner?edit=${l.planId}`} title={t("Edit")} aria-label={t("Edit")}><Icon name="pencil" size={14} /></Link>
                       ) : null}
                     </span>
                   </div>

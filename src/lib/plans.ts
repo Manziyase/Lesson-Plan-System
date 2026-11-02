@@ -48,6 +48,7 @@ export function planSummary(p: {
   date: string;
   status: string;
   approvedByName: string;
+  feedback?: string;
   rows: { className?: string | null; learningArea?: string | null }[];
   updatedAt: Date;
 }) {
@@ -62,6 +63,7 @@ export function planSummary(p: {
     date: p.date,
     status: p.status,
     approvedByName: p.approvedByName,
+    feedback: p.feedback ?? "",
     rows: p.rows.length,
     classes: Array.from(new Set(p.rows.map((r) => r.className).filter(Boolean))) as string[],
     areas: Array.from(new Set(p.rows.map((r) => r.learningArea).filter(Boolean))) as string[],
@@ -108,6 +110,7 @@ export async function findReusable(opts: {
     classId: string;
     learningArea: string;
     learningAreaId: string;
+    subUnit: string;
     unit: string;
     competence: string;
     procedure: string;
@@ -128,6 +131,7 @@ export async function findReusable(opts: {
         classId: r.classId,
         learningArea: r.learningArea,
         learningAreaId: r.learningAreaId,
+        subUnit: r.subUnit,
         unit: extractUnit(r.competence),
         competence: r.competence,
         procedure: r.procedure,
@@ -170,7 +174,7 @@ export async function findSimilar(lesson: {
 
 /** Build a row pre-filled from a source lesson (legacy applyLesson). */
 export function applyLessonRow(
-  source: { classId?: string; className?: string; learningAreaId?: string; learningArea?: string; competence?: string; procedure?: string },
+  source: { classId?: string; className?: string; learningAreaId?: string; learningArea?: string; subUnit?: string; competence?: string; procedure?: string },
   overrides: { classId?: string; className?: string; learningAreaId?: string; learningArea?: string }
 ) {
   return {
@@ -179,6 +183,7 @@ export function applyLessonRow(
     className: overrides.className || source.className || "",
     learningAreaId: overrides.learningAreaId || source.learningAreaId || "",
     learningArea: overrides.learningArea || source.learningArea || "",
+    subUnit: source.subUnit || "",
     competence: source.competence || "",
     procedure: source.procedure || "",
   };
@@ -187,11 +192,21 @@ export function applyLessonRow(
 /**
  * Admin approves a plan → it enters the school-wide Lesson Library.
  * The owning plan keeps the approver's name for the "Approved" note.
+ * @param feedback optional scalar feedback the admin types before approving.
  */
-export async function approvePlan(planId: string, adminName: string): Promise<void> {
+export async function approvePlan(
+  planId: string,
+  adminName: string,
+  feedback: string = ""
+): Promise<void> {
   await prisma.plan.update({
     where: { id: planId },
-    data: { status: "published", approvedByName: adminName, approvedAt: new Date() },
+    data: {
+      status: "published",
+      approvedByName: adminName,
+      approvedAt: new Date(),
+      ...(feedback ? { feedback } : {}),
+    },
   });
   await prisma.lesson.updateMany({ where: { planId }, data: { status: "published" } });
 }
@@ -238,6 +253,7 @@ export async function rebuildLessons(planId: string): Promise<void> {
         learningAreaId: r.learningAreaId,
         learningArea: r.learningArea,
         unit: extractUnit(r.competence),
+        subUnit: r.subUnit,
         competence: r.competence,
         procedure: r.procedure,
         status: plan.status === "published" ? "published" : "pending",

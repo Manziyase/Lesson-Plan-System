@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 /* POST /api/plans/:id/approve — admin only. Approving a plan publishes its
-   lessons school-wide in the Lesson Library (legacy status "published"). */
+   lessons school-wide in the Lesson Library (legacy status "published").
+   Accepts optional { feedback: string } attached to the plan record. */
 export async function POST(req: Request, { params }: Params) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
@@ -17,7 +18,14 @@ export async function POST(req: Request, { params }: Params) {
   if (!plan || plan.schoolId !== user.schoolId) {
     return Response.json({ error: "Plan not found." }, { status: 404 });
   }
-  await approvePlan(plan.id, user.name);
+  let feedback = "";
+  try {
+    const body = await req.json();
+    feedback = typeof body.feedback === "string" ? body.feedback.slice(0, 2000) : "";
+  } catch {
+    /* no body = no feedback */
+  }
+  await approvePlan(plan.id, user.name, feedback);
   const updated = await prisma.plan.findUnique({ where: { id: plan.id }, include: { rows: true } });
   return Response.json({ plan: updated ? planSummary(updated) : null });
 }

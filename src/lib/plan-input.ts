@@ -14,6 +14,7 @@ export type SanitizedRow = {
   stream: string | null;
   learningAreaId: string;
   learningArea: string;
+  subUnit: string;
   competence: string;
   procedure: string;
 };
@@ -40,24 +41,21 @@ export function sanitizePlanInput(
     let classId = "";
     let levelId = "";
     let stream: string | null = null;
-    if (className) {
-      const c = schoolClasses.find((x) => x.name.toLowerCase() === className.toLowerCase());
-      if (c) {
-        classId = c.id;
-        levelId = c.level || "";
-        stream = c.stream || null;
-      } else {
-        levelId = levelOfName(className) || "";
-      }
-    } else if (str(r.classId)) {
-      /* Rows arriving with an id but no name (e.g. duplicates of old plans). */
-      const c = schoolClasses.find((x) => x.id === str(r.classId));
-      if (c) {
-        className = c.name;
-        classId = c.id;
-        levelId = c.level || "";
-        stream = c.stream || null;
-      }
+    /* Match by name first (legacy clients), then by id so a row whose
+       descriptive class text ("P3 SET") still maps to the configured class. */
+    let matched = className
+      ? schoolClasses.find((x) => x.name.toLowerCase() === className.toLowerCase())
+      : undefined;
+    if (!matched && str(r.classId)) {
+      matched = schoolClasses.find((x) => x.id === str(r.classId));
+    }
+    if (matched) {
+      classId = matched.id;
+      if (!className) className = matched.name;
+      levelId = matched.level || "";
+      stream = matched.stream || null;
+    } else if (className) {
+      levelId = levelOfName(className) || "";
     }
     return {
       time: str(r.time).slice(0, 40),
@@ -67,6 +65,7 @@ export function sanitizePlanInput(
       stream,
       learningAreaId: str(r.learningAreaId).slice(0, 40),
       learningArea: str(r.learningArea).slice(0, 80),
+      subUnit: str(r.subUnit).slice(0, 200),
       competence: str(r.competence).slice(0, 2000),
       procedure: str(r.procedure).slice(0, 8000),
     };

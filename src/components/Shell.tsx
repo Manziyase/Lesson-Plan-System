@@ -17,6 +17,13 @@ import { LangSelect, useI18n } from "@/lib/i18n-client";
 import { ThemeToggle } from "@/lib/theme";
 import { Icon, type IconName } from "@/components/icons";
 
+export type MetaAssignment = {
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+};
+
 export type MetaUser = {
   id: string;
   name: string;
@@ -24,6 +31,7 @@ export type MetaUser = {
   role: "admin" | "teacher";
   subjects: string[];
   classes: string[];
+  assignments: MetaAssignment[];
   language: string;
   mustChangePassword: boolean;
 };
@@ -45,14 +53,22 @@ export type Meta = {
     officialPhone: string;
   } | null;
   me: MetaUser;
-  teachers: { id: string; name: string; role: string; email: string; subjects: string[]; classes: string[] }[];
+  teachers: { id: string; name: string; role: string; email: string; subjects: string[]; classes: string[]; assignments: MetaAssignment[] }[];
   classes: { id: string; name: string; level: string | null; stream: string | null }[];
+  subjects: { id: string; name: string }[];
   levels: { id: string; name: string }[];
   learningAreas: { id: string; name: string }[];
   years: { id: string; label: string; startDate: string; endDate: string; isActive: boolean }[];
   activeYear: { id: string; label: string; isActive: boolean } | null;
   /** Admin only: lesson plans submitted but not yet approved. */
   pendingPlans?: number;
+  /** Platform-level feature switches, resolved server-side. */
+  features: {
+    announcements: boolean;
+    lessonLibrary: boolean;
+    planner: boolean;
+    analytics: boolean;
+  };
 };
 
 const MetaContext = createContext<{ meta: Meta; refresh: () => void; setActiveYear: (y: Meta["activeYear"]) => void }>({
@@ -119,15 +135,15 @@ export function Shell({ meta, children }: { meta: Meta; children: React.ReactNod
 
   const navItems: { href: string; label: string }[] = [
     { href: "/dashboard", label: t("Dashboard") },
-    { href: "/planner", label: t("Daily Planner") },
+    ...(meta.features.planner ? [{ href: "/planner", label: t("Daily Planner") }] : []),
     { href: "/calendar", label: t("Calendar") },
     { href: "/plans", label: t("My Plans") },
-    { href: "/library", label: t("Lesson Library") },
-    { href: "/approvals", label: t("Approvals") },
-    ...(currentUser.role === "admin"
+    ...(meta.features.lessonLibrary ? [{ href: "/library", label: t("Lesson Library") }] : []),
+    { href: "/approvals", label: t("Approvals") },        ...(currentUser.role === "admin"
       ? [
           { href: "/admin/years", label: t("Academic Years") },
           { href: "/admin/teachers", label: t("Teachers") },
+          { href: "/admin/subjects", label: t("Subjects") },
           { href: "/admin/settings", label: t("School Settings") },
         ]
       : []),

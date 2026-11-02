@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser, unauthorized } from "@/lib/session";
 import { sanitizePlanInput } from "@/lib/plan-input";
+import { validatePlanAssignments } from "@/lib/assignments";
 import { rebuildLessons, planSummary } from "@/lib/plans";
+import { getPlatformSettings } from "@/lib/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,10 @@ type Params = { params: Promise<{ id: string }> };
 export async function POST(req: Request, { params }: Params) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
+  const settings = await getPlatformSettings();
+  if (!settings.features.planner) {
+    return Response.json({ error: "The lesson planner is not available on this platform right now." }, { status: 403 });
+  }
   const { id } = await params;
   const plan = await prisma.plan.findUnique({ where: { id }, include: { rows: { orderBy: { position: "asc" } } } });
   if (!plan || plan.schoolId !== user.schoolId) {
@@ -24,11 +30,15 @@ export async function POST(req: Request, { params }: Params) {
     /* empty */
   }
   const schoolClasses = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
-  const { errors, date, term, yearId } = sanitizePlanInput(
+  const { errors, date, term, yearId, rows } = sanitizePlanInput(
     { date: body.date, term: body.term, academicYearId: body.academicYearId, rows: plan.rows },
     schoolClasses
   );
   if (errors.length) return Response.json({ error: errors[0], errors }, { status: 400 });
+  // A copy belongs to the current user, so the same assignment rules apply as
+  // for creating a new plan: teachers cannot copy rows they may not teach.
+  const assignmentError = await validatePlanAssignments(user, rows);
+  if (assignmentError) return Response.json({ error: assignmentError }, { status: 400 });
   const year = await prisma.academicYear.findFirst({ where: { id: yearId, schoolId: user.schoolId } });
   if (!year) return Response.json({ error: "Select a valid academic year." }, { status: 400 });
 
@@ -53,7 +63,7 @@ export async function POST(req: Request, { params }: Params) {
       status: user.role === "admin" ? "published" : "pending",
       approvedByName: user.role === "admin" ? user.name : "",
       rows: {
-        create: plan.rows.map((r, i) => ({
+        create: rows.map((r, i) => ({
           id: `${newId}_r${i + 1}`,
           position: i + 1,
           time: r.time,

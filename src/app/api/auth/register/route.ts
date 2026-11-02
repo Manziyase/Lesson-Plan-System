@@ -4,6 +4,8 @@ import { createSession, SESSION_COOKIE, SESSION_TTL_SECONDS } from "@/lib/sessio
 import { str, EMAIL_RE } from "@/lib/util";
 import { isSupportedLang } from "@/lib/i18n";
 import { throttleCheck, throttleRecord } from "@/lib/throttle";
+import { getPlatformSettings, assignDefaultSubscription } from "@/lib/platform";
+import { audit, requestMeta } from "@/lib/audit";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
@@ -41,6 +43,25 @@ const DEFAULT_AREAS = [
  */
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const reqMeta = requestMeta(req);
+  const platformSettings = await getPlatformSettings();
+  if (platformSettings.maintenance.enabled) {
+    return Response.json(
+      {
+        error:
+          platformSettings.maintenance.message ||
+          "LessonHub is temporarily in maintenance mode. Please try again shortly.",
+      },
+      { status: 503 }
+    );
+  }
+  if (!platformSettings.registration.enabled) {
+    return Response.json(
+      { error: "New school registration is temporarily closed. Please contact LessonHub support." },
+      { status: 403 }
+    );
+  }
+  const requireApproval = platformSettings.registration.requireAdminApproval;
   if (!throttleCheck(ip)) {
     return Response.json({ error: "Too many attempts. Please wait a few minutes and try again." }, { status: 429 });
   }
@@ -83,6 +104,17 @@ export async function POST(req: Request) {
   if (name.length > 80) errors.push("Your name is too long (max 80 characters).");
   if (!email) errors.push("Your email address is required.");
   else if (!EMAIL_RE.test(email)) errors.push("Please enter a valid email address.");
+  else {
+    const domains = (platformSettings.registration.allowedEmailDomains || [])
+      .map((d) => String(d).trim().toLowerCase().replace(/^@/, ""))
+      .filter(Boolean);
+    const domain = email.split("@")[1] || "";
+    if (domains.length && !domains.includes(domain)) {
+      errors.push(
+        `Registration is limited to these email domains: ${domains.map((d) => "@" + d).join(", ")}.`
+      );
+    }
+  }
   if (!phone) errors.push("Your phone number is required.");
   else if (!isPhone(phone)) errors.push("Please enter a valid phone number (e.g. +250 788 000 000).");
   if (!password) errors.push("A password is required.");
@@ -135,6 +167,9 @@ export async function POST(req: Request) {
       officialEmail: officialEmail.slice(0, 120),
       officialPhone: officialPhone.slice(0, 30),
       levels: JSON.stringify([]),
+      status: requireApproval ? "pending" : "active",
+      statusReason: requireApproval ? "Awaiting super admin approval" : "",
+      statusChangedAt: requireApproval ? new Date() : null,
     },
   });
 
@@ -144,6 +179,14 @@ export async function POST(req: Request) {
       schoolId: school.id,
       name: n,
       id: ("a-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 14) + "-" + crypto.randomUUID().slice(0, 4)),
+    })),
+  });
+  // Subjects power teacher assignments and the planner's learning-area list.
+  await prisma.subject.createMany({
+    data: DEFAULT_AREAS.map((n) => ({
+      schoolId: school.id,
+      name: n,
+      id: ("s-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 14) + "-" + crypto.randomUUID().slice(0, 4)),
     })),
   });
 
@@ -180,6 +223,48 @@ export async function POST(req: Request) {
   });
 
   throttleRecord(ip, true);
+
+  /* Default plan assignment only when the workspace is immediately usable.
+     Pending registrations receive their trial when a super admin approves. */
+  if (!requireApproval) {
+    await assignDefaultSubscription(school.id, { name: user.name, email: user.email });
+  }
+
+  await audit({
+    actorType: "school_user",
+    actorId: user.id,
+    actorName: user.name,
+    actorEmail: user.email,
+    action: requireApproval ? "school.registration_pending" : "school.registered",
+    targetType: "school",
+    targetId: school.id,
+    schoolId: school.id,
+    summary: requireApproval
+      ? `New school awaiting approval: ${school.name}`
+      : `New school registered: ${school.name}`,
+    ip: reqMeta.ip,
+    userAgent: reqMeta.userAgent,
+    metadata: {
+      schoolCode: school.code,
+      level: school.level,
+      ownership: school.ownership,
+      district: school.district,
+      approvalRequired: requireApproval,
+    },
+  });
+
+  if (requireApproval) {
+    return NextResponse.json(
+      {
+        pendingApproval: true,
+        message:
+          "Your registration was received. A platform administrator must approve this school before you can sign in.",
+        school: { id: school.id, name: school.name, status: school.status },
+      },
+      { status: 201 }
+    );
+  }
+
   const token = await createSession(user.id);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {

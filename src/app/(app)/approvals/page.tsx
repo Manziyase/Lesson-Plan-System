@@ -1,8 +1,5 @@
 "use client";
 
-/* Approvals — admin queue of lesson plans submitted by teachers that are
-   waiting to be approved before they appear in the school-wide Lesson Library. */
-
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,6 +19,7 @@ type PlanSummary = {
   rows: number;
   classes: string[];
   areas: string[];
+  feedback?: string;
   updatedAt: string;
 };
 
@@ -35,6 +33,8 @@ function ApprovalsInner() {
 
   const [pending, setPending] = useState<PlanSummary[] | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string>("");
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -52,14 +52,19 @@ function ApprovalsInner() {
   async function approve(id: string) {
     setApproving(id);
     try {
-      await api(`/api/plans/${encodeURIComponent(id)}/approve`, { method: "POST" });
+      await api(`/api/plans/${encodeURIComponent(id)}/approve`, {
+        method: "POST",
+        body: { feedback: feedback },
+      });
+      setFeedback("");
       toast(t("Plan approved — now in the Lesson Library."), "ok");
       setPending((list) => (list ? list.filter((p) => p.id !== id) : list));
-      router.refresh(); // re-renders the layout so the sidebar badge updates
+      router.refresh();
     } catch (e) {
       toast((e as Error).message, "err");
     }
     setApproving(null);
+    setShowFeedback(false);
   }
 
   if (!isAdmin) {
@@ -124,11 +129,24 @@ function ApprovalsInner() {
                 </div>
               </div>
               <div className="row-actions no-print">
-                <Link className="btn btn-sm" href={`/plans/${p.id}`}><Icon name="eye" size={14} /> {t("View")}</Link>
+                <button className="btn btn-sm" onClick={() => setShowFeedback((v) => !v)}>
+                  <Icon name="eye" size={14} /> <span>{t("View")}</span>
+                </button>
                 <button className="btn btn-sm btn-accent" disabled={approving === p.id} onClick={() => approve(p.id)}>
-                  <Icon name="checkCircle" size={14} /> {approving === p.id ? t("Approving…") : t("Approve")}
+                  <Icon name="checkCircle" size={14} /> <span>{t("Approve")}</span>
                 </button>
               </div>
+              {showFeedback && p.feedback ? (
+                <div className="card" style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <strong>{t("Feedback on this plan")}</strong>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setShowFeedback(false)}>
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
+                  <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: ".9rem" }}>{p.feedback}</p>
+                </div>
+              ) : null}
             </div>
           ))}
         </>

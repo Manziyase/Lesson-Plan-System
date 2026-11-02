@@ -29,6 +29,16 @@ type Dash = {
   activity: { date: string; count: number }[];
 };
 
+type PlatformAnnouncement = {
+  id: string;
+  title: string;
+  message: string;
+  audience: string;
+  publishAt: string | null;
+  createdAt: string;
+  createdByName: string;
+};
+
 /** Animated count-up that stops at the target once (tabular numerals). */
 function CountUp({ value }: { value: number }) {
   const [n, setN] = useState(0);
@@ -58,9 +68,20 @@ export default function DashboardPage() {
   const toast = useToast();
   const [d, setD] = useState<Dash | null>(null);
   const [noticeSent, setNoticeSent] = useState(false);
+  const [announcements, setAnnouncements] = useState<PlatformAnnouncement[]>([]);
   const locale = lang === "rw" ? "rw-RW" : lang === "fr" ? "fr-FR" : "en-GB";
   const isAdmin = meta.me.role === "admin";
   const pendingPlans = meta.pendingPlans ?? 0;
+
+  useEffect(() => {
+    if (!meta.features.announcements) {
+      setAnnouncements([]);
+      return;
+    }
+    api<{ announcements: PlatformAnnouncement[] }>("/api/announcements")
+      .then((r) => setAnnouncements(r.announcements ?? []))
+      .catch(() => setAnnouncements([]));
+  }, [meta.features.announcements]);
 
   useEffect(() => {
     const yearId = meta.activeYear?.id ?? "";
@@ -124,14 +145,45 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="actions">
-          <Link className="btn btn-primary" href="/planner">
-            <Icon name="plus" size={16} /> {t("New Daily Plan")}
-          </Link>
-          <Link className="btn" href="/library">
-            <Icon name="book" size={16} /> {t("Lesson Library")}
-          </Link>
+          {meta.features.planner ? (
+            <Link className="btn btn-primary" href="/planner">
+              <Icon name="plus" size={16} /> {t("New Daily Plan")}
+            </Link>
+          ) : null}
+          {meta.features.lessonLibrary ? (
+            <Link className="btn" href="/library">
+              <Icon name="book" size={16} /> {t("Lesson Library")}
+            </Link>
+          ) : null}
         </div>
       </div>
+
+      {meta.features.announcements && announcements.length ? (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <SectionTitle icon="megaphone">{t("Platform announcements")}</SectionTitle>
+          <div style={{ display: "grid", gap: 14 }}>
+            {announcements.map((a) => (
+              <div
+                key={a.id}
+                style={{ borderLeft: "3px solid var(--color-gold)", paddingLeft: 12 }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <strong style={{ fontSize: ".94rem" }}>{a.title}</strong>
+                  <span className="muted" style={{ fontSize: ".73rem" }}>
+                    {a.publishAt ? new Date(a.publishAt).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }) : ""}
+                  </span>
+                </div>
+                <p style={{ margin: "5px 0 3px", fontSize: ".86rem", lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+                  {a.message}
+                </p>
+                {a.createdByName ? (
+                  <span className="muted" style={{ fontSize: ".72rem" }}>— {a.createdByName}</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {isAdmin && pendingPlans > 0 ? (
         <Link href="/approvals" className="banner banner-warn">
@@ -171,72 +223,79 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid-2">
-        <div className="card">
-          <SectionTitle icon="chart">{t("Lessons by Learning Area")}</SectionTitle>
-          <Bars obj={d.perArea} />
-        </div>
-        <div className="card">
-          <SectionTitle icon="school">{t("Lessons by Class")}</SectionTitle>
-          <Bars obj={d.perClass} />
-        </div>
-      </div>
-
-      <div className="grid-2" style={{ marginTop: 16 }}>
-        <div className="card">
-          <SectionTitle icon="calendar">{t("Planning Activity (last 30 plan-days)")}</SectionTitle>
-          {d.activity.length ? (
-            <>
-              <div style={{ display: "flex", flexWrap: "wrap" }}>
-                {d.activity.map((a) => (
-                  <span
-                    key={a.date}
-                    className="dot"
-                    title={`${fmtDateShort(a.date, locale)}: ${a.count} ${t("daily plan(s)")}`}
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 5,
-                      display: "inline-grid",
-                      placeItems: "center",
-                      fontSize: ".58rem",
-                      margin: 2,
-                      fontWeight: 700,
-                      background: a.count >= 3 ? "var(--color-royal-700)" : a.count === 2 ? "var(--color-royal-500)" : "var(--color-royal-50)",
-                      color: a.count >= 2 ? "#fff" : "var(--color-ink-3)",
-                      border: a.count ? "none" : "1px dashed var(--color-line)",
-                    }}
-                  >
-                    {a.count || ""}
-                  </span>
-                ))}
-              </div>
-              <p className="muted" style={{ fontSize: ".8rem", marginTop: 10 }}>{t("Each square is a day with plans. Darker = more plans that day.")}</p>
-            </>
-          ) : (
-            <p className="muted">{t("No planning activity yet.")}</p>
-          )}
-        </div>
-        <div className="card">
-          <SectionTitle icon="clipboardCheck">{t("By Term")}</SectionTitle>
-          <Bars obj={d.perTerm} />
-          <h3 style={{ margin: "18px 0 6px", fontSize: ".92rem" }}>{t("Recent Plans")}</h3>
-          {d.recent.length ? (
-            <div>
-              {d.recent.slice(0, 5).map((p) => (
-                <Link className="recent-row" key={p.id} href={`/plans/${p.id}`}>
-                  <strong>{fmtDateShort(p.date, locale)}</strong>
-                  <TermChip term={p.term} />
-                  <span className="detail">{isAdmin ? p.teacherName.split(" ")[0] : p.classes.join(", ")}</span>
-                  <span className="detail">{p.rows} {t("lesson(s)")}</span>
-                </Link>
-              ))}
+      {meta.features.analytics ? (
+        <>
+          <div className="grid-2">
+            <div className="card">
+              <SectionTitle icon="chart">{t("Lessons by Learning Area")}</SectionTitle>
+              <Bars obj={d.perArea} />
             </div>
-          ) : (
-            <p className="muted">{t("No plans yet — create your first daily plan!")}</p>
-          )}
-        </div>
-      </div>
+            <div className="card">
+              <SectionTitle icon="school">{t("Lessons by Class")}</SectionTitle>
+              <Bars obj={d.perClass} />
+            </div>
+          </div>
+
+          <div className="grid-2" style={{ marginTop: 16 }}>
+            <div className="card">
+              <SectionTitle icon="calendar">{t("Planning Activity (last 30 plan-days)")}</SectionTitle>
+              {d.activity.length ? (
+                <>
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                    {d.activity.map((a) => (
+                      <span
+                        key={a.date}
+                        className="dot"
+                        title={`${fmtDateShort(a.date, locale)}: ${a.count} ${t("daily plan(s)")}`}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 5,
+                          display: "inline-grid",
+                          placeItems: "center",
+                          fontSize: ".58rem",
+                          margin: 2,
+                          fontWeight: 700,
+                          background: a.count >= 3 ? "var(--color-royal-700)" : a.count === 2 ? "var(--color-royal-500)" : "var(--color-royal-50)",
+                          color: a.count >= 2 ? "#fff" : "var(--color-ink-3)",
+                          border: a.count ? "none" : "1px dashed var(--color-line)",
+                        }}
+                      >
+                        {a.count || ""}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="muted" style={{ fontSize: ".8rem", marginTop: 10 }}>{t("Each square is a day with plans. Darker = more plans that day.")}</p>
+                </>
+              ) : (
+                <p className="muted">{t("No planning activity yet.")}</p>
+              )}
+            </div>
+            <div className="card">
+              <SectionTitle icon="clipboardCheck">{t("By Term")}</SectionTitle>
+              <Bars obj={d.perTerm} />
+              <h3 style={{ margin: "18px 0 6px", fontSize: ".92rem" }}>{t("Recent Plans")}</h3>
+              {d.recent.length ? (
+                <div>
+                  {d.recent.slice(0, 5).map((p) => (
+                    <Link key={p.id} href={`/plans/${p.id}`} className="recent-row">
+                      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                        <strong>{fmtDateShort(p.date, locale)}</strong>
+                        <Icon name="eye" size={13} title={t("View")} aria-label={t("View")} />
+                      </span>
+                      <TermChip term={p.term} />
+                      <span className="detail">{isAdmin ? p.teacherName.split(" ")[0] : p.classes.join(", ")}</span>
+                      <span className="detail">{p.rows} {t("lesson(s)")}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">{t("No plans yet — create your first daily plan!")}</p>
+              )}
+            </div>
+          </div>
+        </>
+      ) : null}
     </>
   );
 }

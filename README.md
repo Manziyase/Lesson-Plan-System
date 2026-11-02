@@ -190,4 +190,49 @@ later need pooling, point `url` at the `-pooler` host with `?pgbouncer=true`.
 npm run typecheck             # strict TypeScript
 npm run build                 # production build
 npm run smoke                 # boots the built server on a temp DB, runs 50 API checks
+npm run test:assignments      # class-specific teacher assignments (needs the app on :3100)
+npm run test:superadmin       # platform console end-to-end (needs the app on :3100)
 ```
+
+## Super Admin console
+
+The platform console lives at `/superadmin` and is completely separate from
+school workspaces. A Super Admin is a `PlatformAdmin` row — never a school
+`User` — so no school registration, teacher edit or profile update can grant
+platform access. School sessions (`slp_session`) and platform sessions
+(`slp_platform_session`) are different cookies and different tables.
+
+Create the first Super Admin from the command line:
+
+```bash
+npm run sa:create -- --name "Platform Owner" --email owner@example.com
+# or non-interactively (CI/server provisioning):
+SUPERADMIN_NAME="Platform Owner" SUPERADMIN_EMAIL=owner@example.com \
+SUPERADMIN_PASSWORD="change-me-now" npm run sa:create
+```
+
+The password is hashed with scrypt and is never printed or stored in plain
+text. By default the first sign-in must change it. Re-run with `--reset` to
+set a new password and revoke every existing platform session.
+
+Console sections: Overview, Schools, Users, Subscriptions & Billing,
+Announcements, Activity & Audit Logs, System Monitoring and Platform Settings.
+Every mutation is authorised server-side and written to `AuditLog`. Sensitive
+actions (suspending a school, disabling an account, changing security settings)
+require confirmation in the UI.
+
+Security notes:
+
+- Platform sessions expire according to `security.sessionHours` (12 h default)
+  and are revoked when an admin is disabled or changes their password.
+- TOTP multi-factor authentication can be enrolled under
+  **Platform Settings → Account**. `security.requireMfa` blocks disabling it
+  and forces enrolment for new admins.
+- Platform settings are stored as one JSON document and merged over defaults;
+  they never overwrite a school's own academic years, teachers, classes or
+  subjects.
+- Recovery links issued from **Users** are single-use, expire after one hour,
+  and only their SHA-256 hash is stored.
+- Secrets (SMTP passwords, API keys) are read from environment variables; the
+  console only ever receives presence flags, never the values.
+

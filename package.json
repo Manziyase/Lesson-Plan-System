@@ -12,7 +12,11 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed-demo": "node scripts/seed-demo.mjs",
+    "sa:create": "node --env-file=.env scripts/create-superadmin.mjs",
+    "test:superadmin": "node --env-file=.env scripts/test-superadmin.mjs",
     "db:migrate:legacy": "node scripts/migrate-legacy.mjs",
+    "db:migrate:assignments": "node --env-file=.env scripts/migrate-assignments.mjs",
+    "test:assignments": "node --env-file=.env scripts/test-assignments.mjs",
     "db:dump-sqlite": "node scripts/export-sqlite-sql.mjs",
     "smoke": "node scripts/smoke-next.mjs",
     "postinstall": "prisma generate"

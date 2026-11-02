@@ -32,6 +32,7 @@ function RegisterForm() {
   const { t, lang, setLang } = useI18n();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<{ school: string; message: string; email: string } | null>(null);
   const [admin, setAdmin] = useState({ name: "", email: "", phone: "", password: "", passwordConfirm: "" });
   const [school, setSchool] = useState({
     name: "",
@@ -80,16 +81,76 @@ function RegisterForm() {
     setError("");
     setBusy(true);
     try {
-      await api("/api/auth/register", {
+      const res = await api<{
+        pendingApproval?: boolean;
+        message?: string;
+        school?: { name: string };
+      }>("/api/auth/register", {
         method: "POST",
         body: { admin: { ...admin, language: lang }, school: { ...school, code: school.code.trim() } },
       });
+      if (res?.pendingApproval) {
+        setPending({
+          school: res.school?.name || school.name,
+          message:
+            res.message ||
+            "Your registration was received. A platform administrator must approve this school before you can sign in.",
+          email: admin.email,
+        });
+        setBusy(false);
+        return;
+      }
       window.location.href = "/dashboard";
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }
+
+  if (pending) {
+    return (
+      <div className="auth-wrap">
+        <div className="auth-card" style={{ maxWidth: 520 }}>
+          <div style={{ textAlign: "center", marginBottom: 16, position: "relative" }}>
+            <div className="auth-logo">
+              <Icon name="clipboardCheck" size={28} />
+            </div>
+            <h1 className="auth-title" style={{ fontSize: "1.25rem", margin: "0 0 2px" }}>
+              {t("Registration received")}
+            </h1>
+            <p className="auth-sub">{t("Your school is awaiting approval")}</p>
+            <div style={{ position: "absolute", top: -6, right: -6 }}>
+              <ThemeToggle />
+            </div>
+          </div>
+          <div className="auth-panel">
+            <div className="sa-callout">
+              <Icon name="shield" size={16} />
+              <span>{pending.message}</span>
+            </div>
+            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+              <div>
+                <span className="field-label">{t("School")}</span>
+                <strong>{pending.school}</strong>
+              </div>
+              <div>
+                <span className="field-label">{t("Administrator email")}</span>
+                <strong>{pending.email}</strong>
+              </div>
+            </div>
+            <p className="muted" style={{ marginTop: 16, fontSize: ".8rem" }}>
+              {t(
+                "You will be able to sign in as soon as a super administrator approves the workspace. No data has been lost, and you can close this page."
+              )}
+            </p>
+            <Link className="btn btn-primary btn-block" href="/login" style={{ marginTop: 14 }}>
+              <Icon name="arrowLeft" size={15} /> {t("Back to sign in")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -97,10 +97,11 @@ export default function AdminYearsPage() {
                     <td>{y.isActive ? <Chip text={t("Active")} kind="ok" /> : <Chip text="—" kind="gray" />}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <div className="row-actions">
-                        <button className="btn btn-sm" onClick={() => setEditYear(y)}><Icon name="pencil" size={14} /> {t("Edit")}</button>
-                        {!y.isActive ? (
-                          <button className="btn btn-sm btn-primary" onClick={() => activate(y.id)}><Icon name="check" size={14} /> {t("Set active")}</button>
-                        ) : null}
+                      <Icon name="eye" size={15} title={t("View")} aria-label={t("View")} />
+                      <button className="btn btn-sm" onClick={() => setEditYear(y)} title={t("Edit")} aria-label={t("Edit")}><Icon name="pencil" size={14} /></button>
+                      {!y.isActive ? (
+                        <button className="btn btn-sm btn-primary" onClick={() => activate(y.id)} title={t("Set active")} aria-label={t("Set active")}><Icon name="check" size={14} /></button>
+                      ) : null}
                       </div>
                     </td>
                   </tr>

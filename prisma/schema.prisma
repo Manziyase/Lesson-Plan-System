@@ -1,16 +1,13 @@
-/*
+/**
  * Ireme — relational schema.
- *
  * Migrated 1:1 from the legacy JSON database (data/db.json):
- *   schools/users/academic_years/plans/sessions collections become tables;
- *   each plan row is stored relationally and mirrored into a searchable
- *   `Lesson` record (same derivation rules as the legacy server).
- *
+ * schools/users/academic_years/plans/sessions collections become tables;
+ * each plan row is stored relationally and mirrored into a searchable
+ * `Lesson` record (same derivation rules as the legacy server).
  * Legacy ids (school_rt, user_ru, plan_7361a1, plan_7361a1_r1, …) are kept
  * verbatim so bookmarks, imported rows and lesson ids stay stable.
  * String arrays (subjects, classes, levels, terms) are JSON-encoded (a legacy
  * habit from the SQLite build); the data layer parses them through helpers.
- *
  * The datasource is PostgreSQL — on Vercel the filesystem is read-only and
  * ephemeral, so the old SQLite file could not be used in production.
  */
@@ -30,27 +27,41 @@ model Meta {
 }
 
 model School {
-  id            String   @id
-  name          String
-  code          String   @default("") // MINEDUC registration/code number (optional)
-  level         String   @default("") // nursery | primary | secondary | combined
-  ownership     String   @default("") // public | aided | private
-  province      String   @default("")
-  district      String   @default("")
-  sector        String   @default("")
-  cell          String   @default("")
-  village       String   @default("")
-  address       String   @default("") // physical address
-  officialEmail String   @default("")
-  officialPhone String   @default("")
-  levels        String   @default("[]") // JSON: ["N1","P1",…]
-  createdAt     DateTime @default(now())
+  id              String    @id
+  name            String
+  code            String    @default("") // MINEDUC registration/code number (optional)
+  level           String    @default("") // nursery | primary | secondary | combined
+  ownership       String    @default("") // public | aided | private
+  province        String    @default("")
+  district        String    @default("")
+  sector          String    @default("")
+  cell            String    @default("")
+  village         String    @default("")
+  address         String    @default("") // physical address
+  officialEmail   String    @default("")
+  officialPhone   String    @default("")
+  levels          String    @default("[]") // JSON: ["N1","P1",…]
+  status          String    @default("active") // active | suspended | deactivated
+  statusReason    String    @default("")
+  statusChangedAt DateTime?
+  lastActiveAt    DateTime? // last successful school-user login
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 
   classes       Class[]
   learningAreas LearningArea[]
   users         User[]
   academicYears AcademicYear[]
   plans         Plan[]
+
+  /**
+   * Subjects the school teaches, managed by the admin.
+   */
+  subjects            Subject[]
+  assignments         TeachingAssignment[]
+  subscriptions       SchoolSubscription[]
+  payments            PaymentRecord[]
+  announcementTargets AnnouncementSchool[]
 }
 
 model Class {
@@ -61,6 +72,8 @@ model Class {
   stream   String? // "A" … "H" or null
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  teachingAssignments TeachingAssignment[]
 
   @@index([schoolId])
 }
@@ -75,47 +88,90 @@ model LearningArea {
   @@index([schoolId])
 }
 
+model Subject {
+  id       String @id
+  schoolId String
+  name     String
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  teachingAssignments TeachingAssignment[]
+
+  @@unique([schoolId, name])
+}
+
+/// One teacher teaching one subject to one class. The unique triple prevents
+/// duplicate assignments and keeps every subject/class combination explicit.
+model TeachingAssignment {
+  id        String   @id
+  schoolId  String
+  teacherId String
+  classId   String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId, subjectId])
+  @@index([schoolId])
+  @@index([teacherId, classId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
 model User {
-  id                 String   @id
+  id                 String    @id
   schoolId           String
   name               String
-  email              String   @unique
-  phone              String   @default("") // administrator phone number
-  role               String   @default("teacher") // "admin" | "teacher"
+  email              String    @unique
+  phone              String    @default("") // administrator phone number
+  role               String    @default("teacher") // "admin" | "teacher"
   salt               String // legacy scrypt format preserved (12-byte hex)
   passwordHash       String // scrypt 32-byte hex — migrated users log in unchanged
-  subjects           String   @default("[]") // JSON string[]
-  classes            String   @default("[]") // JSON string[] (class names)
-  language           String   @default("en") // en | fr | rw
-  mustChangePassword Boolean  @default(false)
+  subjects           String    @default("[]") // JSON string[]
+  classes            String    @default("[]") // JSON string[] (class names)
+  language           String    @default("en") // en | fr | rw
+  mustChangePassword Boolean   @default(false)
+  status             String    @default("active") // active | disabled
+  statusReason       String    @default("")
+  disabledAt         DateTime?
+  lastLoginAt        DateTime?
   activeYearId       String?
-  createdAt          DateTime @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
 
   school   School    @relation(fields: [schoolId], references: [id])
   plans    Plan[]
   sessions Session[]
 
+  teachingAssignments TeachingAssignment[]
+  recoveryTokens      RecoveryToken[]
+
   @@index([schoolId])
+  @@index([status])
 }
 
 model AcademicYear {
   id        String   @id
   schoolId  String
   label     String
-  startDate String // YYYY-MM-DD
-  endDate   String // YYYY-MM-DD
+  startDate String
+  endDate   String
   terms     String   @default("[1,2,3]") // JSON number[]
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id])
   plans  Plan[]
 
   @@index([schoolId])
 }
 
 model Plan {
-  id             String   @id
+  id             String    @id
   schoolId       String
   teacherId      String
   teacherName    String // denormalised, as in the legacy DB
@@ -123,11 +179,12 @@ model Plan {
   yearLabel      String // denormalised
   term           Int // 1 | 2 | 3
   date           String // YYYY-MM-DD (kept as string for legacy comparisons)
-  status         String   @default("published") // "pending" (awaiting admin approval) | "published" (approved → visible in the Lesson Library)
-  approvedByName String   @default("") // admin who approved it
+  status         String    @default("published") // "pending" (awaiting admin approval) | "published" (approved → visible in the Lesson Library)
+  approvedByName String    @default("") // admin who approved it
   approvedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  feedback       String    @default("") // optional admin feedback attached on approval
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   teacher User         @relation(fields: [teacherId], references: [id])
   year    AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -152,6 +209,7 @@ model PlanRow {
   stream         String?
   learningAreaId String  @default("")
   learningArea   String  @default("")
+  subUnit        String  @default("")
   competence     String  @default("")
   procedure      String  @default("")
 
@@ -162,24 +220,25 @@ model PlanRow {
 
 /// Searchable lesson record derived from a PlanRow (legacy "lessons" collection).
 model Lesson {
-  id             String  @id // equals the PlanRow id
+  id             String   @id // equals the PlanRow id
   planId         String
   schoolId       String
   teacherId      String
-  teacherName    String  @default("")
-  yearLabel      String  @default("")
+  teacherName    String   @default("")
+  yearLabel      String   @default("")
   academicYearId String
   term           Int
   date           String
-  time           String  @default("")
-  classId        String  @default("")
-  className      String  @default("")
-  levelId        String  @default("")
-  learningAreaId String  @default("")
-  learningArea   String  @default("")
-  unit           String  @default("") // first line of the competence
-  competence     String  @default("")
-  procedure      String  @default("")
+  time           String   @default("")
+  classId        String   @default("")
+  className      String   @default("")
+  levelId        String   @default("")
+  learningAreaId String   @default("")
+  learningArea   String   @default("")
+  unit           String   @default("") // first line of the competence
+  subUnit        String   @default("")
+  competence     String   @default("")
+  procedure      String   @default("")
   createdAt      DateTime
   updatedAt      DateTime
   status         String   @default("published") // mirrors the owning plan's approval status
@@ -202,4 +261,208 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/**
+ * ==========================================================================
+ * Platform (SaaS) layer — completely separate from school tenants.
+ * A PlatformAdmin is NOT a User and can never be created through school
+ * registration, teacher management or profile editing.
+ * ==========================================================================
+ */
+
+model PlatformAdmin {
+  id                 String    @id
+  name               String
+  email              String    @unique
+  salt               String
+  passwordHash       String
+  status             String    @default("active") // active | disabled
+  mfaEnabled         Boolean   @default(false)
+  mfaSecret          String    @default("") // base32 TOTP secret
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sessions   PlatformSession[]
+  challenges PlatformMfaChallenge[]
+
+  @@index([status])
+}
+
+model PlatformSession {
+  token     String   @id
+  adminId   String
+  ip        String   @default("")
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+/// Short-lived (10 min) password→MFA challenge. Never a full session.
+model PlatformMfaChallenge {
+  token     String   @id
+  adminId   String
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+/// Key/value platform configuration. Structured JSON lives under key
+/// "platform"; secrets (SMTP passwords, API keys) are never stored here.
+model PlatformSetting {
+  key       String   @id
+  value     String   @default("")
+  updatedBy String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model SubscriptionPlan {
+  id           String   @id
+  code         String   @unique // free | basic | professional | enterprise
+  name         String
+  description  String   @default("")
+  monthlyPrice Int      @default(0) // whole currency units (RWF)
+  annualPrice  Int      @default(0)
+  currency     String   @default("RWF")
+  maxTeachers  Int? // null = unlimited
+  maxUsers     Int?
+  maxClasses   Int?
+  maxStorageMb Int?
+  features     String   @default("[]") // JSON string[]
+  isActive     Boolean  @default(true)
+  isDefault    Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions SchoolSubscription[]
+
+  @@index([isActive])
+}
+
+model SchoolSubscription {
+  id           String    @id
+  schoolId     String
+  planId       String
+  status       String    @default("trial") // trial | active | expired | cancelled | suspended
+  billingCycle String    @default("monthly") // monthly | annual
+  startDate    String // YYYY-MM-DD
+  renewsAt     String    @default("")
+  endsAt       String    @default("")
+  cancelledAt  DateTime?
+  notes        String    @default("")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  school   School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id])
+  payments PaymentRecord[]
+
+  @@index([schoolId])
+  @@index([planId])
+  @@index([status])
+}
+
+/// Actual, manually recorded payments only. No simulated transactions.
+model PaymentRecord {
+  id             String    @id
+  schoolId       String
+  subscriptionId String?
+  amount         Int
+  currency       String    @default("RWF")
+  status         String    @default("recorded") // recorded | paid | failed | refunded
+  method         String    @default("") // bank_transfer | mobile_money | cash | card | other
+  reference      String    @default("")
+  paidAt         DateTime?
+  notes          String    @default("")
+  recordedBy     String    @default("") // platform admin id
+  createdAt      DateTime  @default(now())
+
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subscription SchoolSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([paidAt])
+}
+
+model Announcement {
+  id            String    @id
+  title         String
+  message       String
+  audience      String    @default("all") // all | admins | teachers | schools
+  status        String    @default("draft") // draft | published | archived
+  publishAt     DateTime?
+  expiresAt     DateTime?
+  createdById   String    @default("")
+  createdByName String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  schools AnnouncementSchool[]
+
+  @@index([status])
+  @@index([audience])
+  @@index([publishAt])
+}
+
+model AnnouncementSchool {
+  announcementId String
+  schoolId       String
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, schoolId])
+  @@index([schoolId])
+}
+
+model AuditLog {
+  id         String   @id
+  actorType  String   @default("platform_admin") // platform_admin | school_user | system
+  actorId    String   @default("")
+  actorName  String   @default("")
+  actorEmail String   @default("")
+  action     String // e.g. school.suspend, user.disable, auth.login, system.error
+  targetType String   @default("")
+  targetId   String   @default("")
+  schoolId   String   @default("")
+  summary    String   @default("")
+  metadata   String   @default("{}") // JSON detail; never passwords/tokens
+  ip         String   @default("")
+  userAgent  String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+  @@index([schoolId])
+  @@index([actorType])
+}
+
+/// One-time, hashed password-recovery token created by a Super Admin and
+/// delivered out-of-band. The plain token is shown once and never stored.
+model RecoveryToken {
+  id        String    @id
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdBy String    @default("") // platform admin id
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

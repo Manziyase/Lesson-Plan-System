@@ -11,6 +11,7 @@
 import type { Meta } from "@/components/Shell";
 import type { SessionUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { getPlatformSettings } from "@/lib/platform";
 import { classOrderKey, parseStringArray, LEVELS } from "@/lib/util";
 
 export async function loadAppMeta(user: SessionUser): Promise<Meta> {
@@ -22,6 +23,18 @@ export async function loadAppMeta(user: SessionUser): Promise<Meta> {
   const areas = (await prisma.learningArea.findMany({ where: { schoolId: user.schoolId } })).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
+  const subjects = await prisma.subject.findMany({ where: { schoolId: user.schoolId }, orderBy: { name: "asc" } });
+  const assignments = await prisma.teachingAssignment.findMany({
+    where: { schoolId: user.schoolId },
+    include: { class: true, subject: true },
+    orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }],
+  });
+  const assignmentsByTeacher = new Map<string, { classId: string; className: string; subjectId: string; subjectName: string }[]>();
+  for (const a of assignments) {
+    const list = assignmentsByTeacher.get(a.teacherId) ?? [];
+    list.push({ classId: a.classId, className: a.class.name, subjectId: a.subjectId, subjectName: a.subject.name });
+    assignmentsByTeacher.set(a.teacherId, list);
+  }
   const years = await prisma.academicYear.findMany({ where: { schoolId: user.schoolId }, orderBy: { startDate: "desc" } });
   const activeYear = years.find((y) => y.id === user.activeYearId) ?? years.find((y) => y.isActive) ?? years[0] ?? null;
   const configuredLevels = parseStringArray(school?.levels);
@@ -31,6 +44,7 @@ export async function loadAppMeta(user: SessionUser): Promise<Meta> {
     user.role === "admin"
       ? await prisma.plan.count({ where: { schoolId: user.schoolId, status: "pending" } })
       : 0;
+  const settings = await getPlatformSettings();
 
   return {
     school: school
@@ -57,6 +71,7 @@ export async function loadAppMeta(user: SessionUser): Promise<Meta> {
       role: user.role,
       subjects: user.subjects,
       classes: user.classes,
+      assignments: assignmentsByTeacher.get(user.id) ?? [],
       language: user.language,
       mustChangePassword: user.mustChangePassword,
     },
@@ -67,12 +82,15 @@ export async function loadAppMeta(user: SessionUser): Promise<Meta> {
       email: u.email,
       subjects: parseStringArray(u.subjects),
       classes: parseStringArray(u.classes),
+      assignments: assignmentsByTeacher.get(u.id) ?? [],
     })),
     classes,
     levels,
     learningAreas: areas,
+    subjects: subjects.map((s) => ({ id: s.id, name: s.name })),
     years: years.map((y) => ({ id: y.id, label: y.label, startDate: y.startDate, endDate: y.endDate, isActive: y.isActive })),
     activeYear: activeYear ? { id: activeYear.id, label: activeYear.label, isActive: activeYear.isActive } : null,
     pendingPlans,
+    features: settings.features,
   };
 }

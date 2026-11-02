@@ -6,6 +6,7 @@
 
 import { cookies } from "next/headers";
 import { prisma } from "./db";
+import { getPlatformSettings } from "./platform";
 import { randomToken } from "./password";
 import { parseStringArray, nowISO } from "./util";
 
@@ -51,6 +52,23 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
   const u = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!u) return null;
+  /* Disabled accounts and suspended/deactivated school workspaces are
+     rejected on every request, so a platform action takes effect without
+     waiting for the session to expire. */
+  if (u.status !== "active") {
+    await prisma.session.deleteMany({ where: { userId: u.id } }).catch(() => {});
+    return null;
+  }
+  const school = await prisma.school.findUnique({ where: { id: u.schoolId }, select: { status: true } });
+  if (!school || school.status !== "active") {
+    await prisma.session.deleteMany({ where: { userId: u.id } }).catch(() => {});
+    return null;
+  }
+  /* Platform maintenance mode refuses school sessions without deleting the
+     underlying data. Sessions are kept so access returns when maintenance
+     ends; only the request is rejected. */
+  const settings = await getPlatformSettings();
+  if (settings.maintenance.enabled) return null;
   return {
     id: u.id,
     name: u.name,

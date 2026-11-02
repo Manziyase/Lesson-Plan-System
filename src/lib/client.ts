@@ -1,6 +1,7 @@
-"use client";
+"use client";/* Typed fetch wrapper for client components (same-origin API). */
+import { toUserError } from "./friendly-error";
 
-/* Typed fetch wrapper for client components (same-origin API). */
+export { toUserError };
 
 export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const res = await fetch(path, {
@@ -22,11 +23,28 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
         window.location.href = "/login";
       }
     }
-    const err = new Error((data && data.error) || `Request failed (${res.status})`) as Error & { status: number };
+    const user = toUserError(data);
+    const err = new Error(user.message) as Error & { status: number; raw: unknown; userMessage: string; userCode: string };
     err.status = res.status;
+    err.raw = data;
+    err.userMessage = user.message;
+    err.userCode = user.code;
     throw err;
   }
   return data as T;
+}
+
+/** Return a friendly message for a non-ok response instead of throwing. */
+export async function apiMaybe<T>(path: string, opts?: Parameters<typeof api>[1]): Promise<{ data: T | null; error: string; code: string }> {
+  try {
+    return { data: await api<T>(path, opts), error: "", code: "ok" };
+  } catch (e) {
+    const err = e as { userMessage?: string; userCode?: string; message?: string };
+    if (err && typeof err === "object" && typeof err.userMessage === "string") {
+      return { data: null, error: err.userMessage, code: err.userCode ?? "unknown" };
+    }
+    return { data: null, error: err?.userMessage ?? err?.message ?? "Request failed", code: "unknown" };
+  }
 }
 
 /* ---------- shared client helpers (ported from public/js/ui.js) ---------- */

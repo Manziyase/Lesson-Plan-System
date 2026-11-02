@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser, unauthorized } from "@/lib/session";
 import { sanitizePlanInput } from "@/lib/plan-input";
+import { validatePlanAssignments } from "@/lib/assignments";
 import { rebuildLessons, findSimilar, markPlanPending } from "@/lib/plans";
+import { getPlatformSettings } from "@/lib/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,10 @@ export async function GET(req: Request, { params }: Params) {
 export async function PUT(req: Request, { params }: Params) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
+  const settings = await getPlatformSettings();
+  if (!settings.features.planner) {
+    return Response.json({ error: "The lesson planner is not available on this platform right now." }, { status: 403 });
+  }
   const { id } = await params;
   const plan = await prisma.plan.findUnique({ where: { id }, include: { rows: true } });
   if (!plan || plan.schoolId !== user.schoolId) {
@@ -60,6 +66,8 @@ export async function PUT(req: Request, { params }: Params) {
   const schoolClasses = await prisma.class.findMany({ where: { schoolId: user.schoolId } });
   const { errors, date, term, yearId, rows } = sanitizePlanInput(body, schoolClasses);
   if (errors.length) return Response.json({ error: errors[0], errors }, { status: 400 });
+  const assignmentError = await validatePlanAssignments(user, rows);
+  if (assignmentError) return Response.json({ error: assignmentError }, { status: 400 });
   const year = await prisma.academicYear.findFirst({ where: { id: yearId, schoolId: user.schoolId } });
   if (!year) return Response.json({ error: "Select a valid academic year." }, { status: 400 });
 
@@ -73,11 +81,28 @@ export async function PUT(req: Request, { params }: Params) {
         term,
         academicYearId: year.id,
         yearLabel: year.label,
-        rows: { create: rows.map((r, i) => ({ ...r, id: `${plan.id}_r${i + 1}`, position: i + 1 })) },
+        rows: { create: rows.map((r, i) => ({
+        // PlanRow fields only — these never belong on the Plan object itself,
+        // so they are picked out explicitly instead of spread in ("subUnit",
+        // "id" and "position" were what the server rejected).
+        id: `${plan.id}_r${i + 1}`,
+        planId: plan.id,
+        position: i + 1,
+        time: r.time,
+        classId: r.classId,
+        className: r.className,
+        levelId: r.levelId,
+        stream: r.stream ?? null,
+        learningAreaId: r.learningAreaId,
+        learningArea: r.learningArea,
+        subUnit: r.subUnit,
+        competence: r.competence,
+        procedure: r.procedure,
+      })) },
       },
       include: { rows: { orderBy: { position: "asc" } } },
     });
-  });
+  }, { maxWait: 10_000, timeout: 20_000 });
   // A teacher revising a plan the admin already approved must resubmit it
   // for approval; admin edits keep the plan approved.
   if (wasApproved && user.role !== "admin" && plan.teacherId === user.id) {
